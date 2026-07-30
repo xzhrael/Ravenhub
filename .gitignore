@@ -8,6 +8,7 @@ apps_src/app/build/
 overlay_src/
 RELEASE_NOTES.md
 setup_dev.sh
+.gemini/
 
 # Rust build target
 **/target/
