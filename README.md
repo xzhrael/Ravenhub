@@ -98,7 +98,7 @@ We welcome contributions to make **RavenHub** even better!
 
 ---
 
-## 🧑Core Developers & Credits / 開発者とクレジット
+## Core Developers & Credits / 開発者とクレジット
 
 ### Core Developers / 開発メンバー
 
