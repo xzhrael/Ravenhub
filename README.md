@@ -1,7 +1,7 @@
 # RavenHub
 
 <p align="center">
-  <img src="apps_src/app/src/main/res/drawable-nodpi/banner_bg.png" alt="RavenHub Banner" width="100%" style="border-radius: 8px;">
+  <img src="https://github.com/xzhrael/Ravenhub/blob/main/apps_src/app/src/main/res/drawable/banner_bg.gif" alt="RavenHub Banner" width="100%" style="border-radius: 8px;">
 </p>
 
 <p align="center">
@@ -79,20 +79,6 @@ RavenHub is built for universal compatibility on all Android devices (API 26+) w
 | **armeabi-v7a** | Legacy 32-bit Devices | `RavenHub-1.0-armeabi-v7a-release.apk` |
 | **x86_64** | Android Emulators / Intel Devices | `RavenHub-1.0-x86_64-release.apk` |
 | **Universal** | All Compatible Devices | `RavenHub-1.0-universal-release.apk` |
-
-### Environment Setup & Compilation
-1. Run the environment setup script:
-   ```shell
-   ./setup_dev.sh
-   ```
-2. Compile release APKs:
-   ```shell
-   cd apps_src && ./gradlew assembleRelease
-   ```
-3. Install the generated APK onto your Android device:
-   ```shell
-   adb install -r RavenHub-1.0-universal-release.apk
-   ```
 
 ---
 
