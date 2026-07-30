@@ -1,0 +1,23 @@
+namespace raven_security {
+    [Throws=SecurityError]
+    sequence<u8> encrypt_bytes(sequence<u8> key, sequence<u8> plaintext);
+
+    [Throws=SecurityError]
+    sequence<u8> decrypt_bytes(sequence<u8> key, sequence<u8> ciphertext);
+
+    [Throws=SecurityError]
+    void encrypt_file_chunked(string input_path, string output_path, sequence<u8> key);
+
+    [Throws=SecurityError]
+    void decrypt_file_chunked(string input_path, string output_path, sequence<u8> key);
+
+    sequence<u8> derive_pbkdf2_key(sequence<u8> password, sequence<u8> salt, u32 iterations);
+};
+
+[Error]
+enum SecurityError {
+    "EncryptionFailed",
+    "DecryptionFailed",
+    "InvalidKeyLength",
+    "IoError",
+};

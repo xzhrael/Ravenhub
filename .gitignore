@@ -1,0 +1,35 @@
+# Gradle build outputs & caches
+.gradle/
+build/
+**/build/
+apps_src/.gradle/
+apps_src/build/
+apps_src/app/build/
+overlay_src/
+RELEASE_NOTES.md
+
+# Rust build target
+**/target/
+apps_src/rust/target/
+
+# Local machine specific files
+local.properties
+.kotlin/
+.navigation/
+captures/
+
+# IDE files (Android Studio / IntelliJ / VSCode)
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+
+# Generated APKs in root (optional build outputs, source files remain intact)
+*.apk
+*.aab
+
+# Do NOT ignore keystores required for building the project out of the box
+!apps_src/app/ravencore.jks

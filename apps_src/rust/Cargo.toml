@@ -1,0 +1,20 @@
+[package]
+name = "raven_security"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+aes-gcm = "0.10.3"
+zeroize = "1.8.1"
+rand = "0.8.5"
+thiserror = "1.0.63"
+pbkdf2 = "0.12.2"
+hmac = "0.12.1"
+sha2 = "0.10.8"
+uniffi = { version = "0.27.3", features = ["cli"] }
+
+[build-dependencies]
+uniffi = { version = "0.27.3", features = ["build"] }
