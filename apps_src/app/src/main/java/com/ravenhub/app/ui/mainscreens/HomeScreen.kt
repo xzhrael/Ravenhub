@@ -42,6 +42,9 @@ import com.ravenhub.app.ui.component.LocalAppHazeState
 import com.ravenhub.app.ui.component.LocalBlurEnabled
 import com.ravenhub.app.ui.component.MediaBannerRenderer
 import com.ravenhub.app.ui.util.getHeaderImage
+import com.ravenhub.app.ui.util.UpdateCheckerUtil
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.SystemUpdate
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -81,6 +84,11 @@ fun HomeScreen(navController: NavController) {
     }
 
     val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
+    val updateResult by UpdateCheckerUtil.updateState
+
+    LaunchedEffect(Unit) {
+        UpdateCheckerUtil.checkUpdate(context)
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -90,7 +98,7 @@ fun HomeScreen(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(
-                bottom = 110.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                bottom = 76.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             )
         ) {
             item {
@@ -100,6 +108,58 @@ fun HomeScreen(navController: NavController) {
             // --- Hero Banner ---
             item {
                 HeroBannerCard()
+            }
+
+            if (updateResult.isUpdateAvailable) {
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { uriHandler.openUri(updateResult.downloadUrl) },
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shadowElevation = if (isBlurEnabled) 0.dp else 4.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Filled.SystemUpdate,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Update Available: ${updateResult.latestVersion}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = "Tap to download the latest release from GitHub",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
             }
 
             // --- Quick Summary Section ---

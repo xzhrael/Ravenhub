@@ -3,10 +3,8 @@
 package com.ravenhub.app.ui.mainscreens
 
 import android.app.Activity
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -15,20 +13,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assistant
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -38,12 +32,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.ravenhub.app.MainActivity
-import com.ravenhub.app.security.RootSecurityManager
 import com.ravenhub.app.ui.component.ExpressiveList
 import com.ravenhub.app.ui.component.ExpressiveSwitchItem
 import kotlinx.coroutines.Dispatchers
@@ -59,16 +49,14 @@ private fun ExpressiveSystemBackground(
     val targetOffsetA = when (currentPage) {
         0 -> Offset(0.2f, 0.2f)
         1 -> Offset(0.8f, 0.1f)
-        2 -> Offset(0.1f, 0.8f)
-        3 -> Offset(0.5f, 0.5f)
+        2 -> Offset(0.5f, 0.5f)
         else -> Offset(0.5f, 0.5f)
     }
 
     val targetOffsetB = when (currentPage) {
         0 -> Offset(0.8f, 0.8f)
         1 -> Offset(0.2f, 0.7f)
-        2 -> Offset(0.9f, 0.2f)
-        3 -> Offset(0.5f, 0.5f)
+        2 -> Offset(0.5f, 0.5f)
         else -> Offset(0.5f, 0.5f)
     }
 
@@ -114,9 +102,6 @@ private fun ExpressiveSystemBackground(
 @Composable
 fun GetStartedScreen(navController: NavController) {
     var currentPage by remember { mutableIntStateOf(0) }
-    var isCheckingRoot by remember { mutableStateOf(false) }
-    var rootChecked by remember { mutableStateOf(false) }
-    var isRooted by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
@@ -125,11 +110,10 @@ fun GetStartedScreen(navController: NavController) {
 
     var isBlurEnabled by remember { mutableStateOf(settingsPrefs.getBoolean("expressive_blur_ui", false)) }
     var enableNotifications by remember { mutableStateOf(settingsPrefs.getBoolean("enable_notifications", true)) }
-    var isLauncherVisible by remember { mutableStateOf(isLauncherIconEnabled(context)) }
 
     var isFinalizing by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val totalPages = 4
+    val totalPages = 3
 
     val contentAlpha by animateFloatAsState(
         targetValue = if (isFinalizing) 0f else 1f,
@@ -327,113 +311,6 @@ fun GetStartedScreen(navController: NavController) {
                         }
                         1 -> {
                             Text(
-                                text = "Root Access (Optional)",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.ExtraBold,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = enterTransition.value
-                                    translationY = 40f * (1f - enterTransition.value)
-                                }
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Card(
-                                shape = RoundedCornerShape(20.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(20.dp)) {
-                                    Text(
-                                        text = "Root is NOT required for RavenHub.",
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(Modifier.height(8.dp))
-                                    Text(
-                                        text = "• Non-Root: Full features (Planner, Notes, Encrypted Vault, Finance, Reminders & Themes).\n" +
-                                                "• Root Mode: Unlocks extra system tools (DevShell root commands, kernel-level secure file wipe & diagnostic logs).",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            Button(
-                                onClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    isCheckingRoot = true
-                                    coroutineScope.launch(Dispatchers.IO) {
-                                        val rootStatus = RootSecurityManager.isRootAvailable
-                                        withContext(Dispatchers.Main) {
-                                            isRooted = rootStatus
-                                            rootChecked = true
-                                            isCheckingRoot = false
-                                        }
-                                    }
-                                },
-                                shape = RoundedCornerShape(20.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(56.dp)
-                            ) {
-                                if (isCheckingRoot) {
-                                    CircularProgressIndicator(
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(24.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
-                                    Text(
-                                        "Check Environment",
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            AnimatedVisibility(
-                                visible = rootChecked,
-                                enter = fadeIn() + expandVertically()
-                            ) {
-                                Surface(
-                                    color = if (isRooted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    shape = RoundedCornerShape(16.dp)
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isRooted) Icons.Rounded.Check else Icons.Rounded.Security,
-                                            contentDescription = null,
-                                            tint = if (isRooted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Text(
-                                            text = if (isRooted) "Root Environment Detected (Root Mode Active)" else "Non-Root Mode Active (Standard Operating Mode)",
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        2 -> {
-                            Text(
                                 text = "Customize RavenHub",
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.ExtraBold,
@@ -472,26 +349,11 @@ fun GetStartedScreen(navController: NavController) {
                                                 settingsPrefs.edit().putBoolean("enable_notifications", isChecked).apply()
                                             }
                                         )
-                                    },
-                                    {
-                                        ExpressiveSwitchItem(
-                                            icon = Icons.Rounded.AddHome,
-                                            title = "Show Launcher Icon",
-                                            checked = isLauncherVisible,
-                                            onCheckedChange = { isChecked ->
-                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                isLauncherVisible = isChecked
-                                                val pkg = context.packageManager
-                                                val componentName = ComponentName(context.packageName, "${context.packageName}.Launcher")
-                                                val newState = if (isChecked) PackageManager.COMPONENT_ENABLED_STATE_ENABLED else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-                                                pkg.setComponentEnabledSetting(componentName, newState, PackageManager.DONT_KILL_APP)
-                                            }
-                                        )
                                     }
                                 )
                             )
                         }
-                        3 -> {
+                        2 -> {
                             Icon(
                                 imageVector = Icons.Rounded.Check,
                                 contentDescription = null,

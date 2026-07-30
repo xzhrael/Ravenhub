@@ -260,7 +260,7 @@ fun FinanceScreen(viewModel: FinanceViewModel = viewModel()) {
                         )
                     }
 
-                    Spacer(Modifier.height(80.dp))
+                    Spacer(Modifier.height(76.dp))
                 }
             } else {
                 // --- TAB 1: HISTORY & ANALYTICS ---
@@ -508,7 +508,7 @@ private fun HistoryAnalyticsSubPage(
             )
         }
 
-        Spacer(Modifier.height(80.dp))
+        Spacer(Modifier.height(76.dp))
     }
 }
 

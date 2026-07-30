@@ -386,19 +386,19 @@ private fun ConfirmDialog(
                 label = "dialog_scale"
             )
 
-            Box(
+            Surface(
                 modifier = Modifier
                     .widthIn(min = 350.dp, max = 500.dp) 
                     .padding(24.dp) 
                     .scale(scale)
-                    .clip(RoundedCornerShape(28.dp))
-                    // modal blur exclusion
-                    .background(AlertDialogDefaults.containerColor)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                         onClick = {}
-                    )
+                    ),
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface
             ) {
                 Column(
                     modifier = Modifier
@@ -408,7 +408,8 @@ private fun ConfirmDialog(
                     Text(
                         text = visuals.title,
                         style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
                     )
                     visuals.content?.let { contentText ->
                         Spacer(modifier = Modifier.height(16.dp))
@@ -424,11 +425,11 @@ private fun ConfirmDialog(
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = dismiss) {
-                            Text(text = visuals.dismiss ?: stringResource(id = android.R.string.cancel))
+                            Text(text = visuals.dismiss ?: stringResource(id = android.R.string.cancel), color = MaterialTheme.colorScheme.primary)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         TextButton(onClick = confirm) {
-                            Text(text = visuals.confirm ?: stringResource(id = android.R.string.ok))
+                            Text(text = visuals.confirm ?: stringResource(id = android.R.string.ok), color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -476,19 +477,19 @@ fun CustomContentDialog(
                 label = "dialog_scale"
             )
 
-            Box(
+            Surface(
                 modifier = Modifier
                     .widthIn(min = 350.dp, max = 500.dp) 
                     .padding(24.dp) 
                     .scale(scale)
-                    .clip(RoundedCornerShape(28.dp))
-                    // modal blur exclusion
-                    .background(AlertDialogDefaults.containerColor)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                         onClick = {}
-                    )
+                    ),
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface
             ) {
                 Column(
                     modifier = Modifier
@@ -498,12 +499,15 @@ fun CustomContentDialog(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     
 
-                    content()
+                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+                        content()
+                    }
 
                     Spacer(modifier = Modifier.height(24.dp))
                     Row(
@@ -511,11 +515,14 @@ fun CustomContentDialog(
                         horizontalArrangement = Arrangement.End
                     ) {
                         TextButton(onClick = onDismiss) {
-                            Text(text = dismissText)
+                            Text(text = dismissText, color = MaterialTheme.colorScheme.primary)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         TextButton(onClick = onConfirm, enabled = confirmEnabled) {
-                            Text(text = confirmText)
+                            Text(
+                                text = confirmText,
+                                color = if (confirmEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
                         }
                     }
                 }

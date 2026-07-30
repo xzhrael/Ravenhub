@@ -24,31 +24,31 @@
 
 ## Core Features / 機能一覧
 
-### 📅 Planner & Habit Tracker / タスク＆習慣管理
+### Planner & Habit Tracker / タスク＆習慣管理
 * **Interactive Todo List:** Easily manage daily tasks with priority tags, completion toggles, and overdue tracking.
   タスクの優先度管理と完了状態のリアルタイム切り替え。
 * **Habit Frequency Monitoring:** Track recurring habits (Daily, Weekly, Monthly) with completion streaks.
 * **Local Reminder Notifications:** Integrated scheduler sending precise alarms for upcoming deadlines without external server dependency.
 
-### 📝 Notes Engine / ノート機能
+### Notes Engine / ノート機能
 * **Categorized Markdown Editor:** Rich text formatting, instant search filtering by category, and clean UI navigation.
   カテゴリ別の即時検索とマークダウンリッチエディタ。
 * **Instant Privacy Lock:** Automatically secures notes behind master PIN authorization on app pause or background exit.
 
-### 🔐 Encrypted Vault & Secrets / 暗号化ボルト
+### Encrypted Vault & Secrets / 暗号化ボルト
 * **AES-256-GCM Hardware Crypto:** Protect sensitive passwords and confidential documents using native Rust FFI bridges.
   Rust FFIブリッジによるハードウェアレベルのAES-256-GCM暗号化。
 * **Secure File Vault:** Instant open-in intent launcher for encrypted files with FileProvider integration.
 * **Re-Auth Protected Actions:** Requires master PIN authentication before revealing secret credentials or exporting files.
 
-### 💳 Finance Manager & Analytics / 財務管理＆アナリティクス
+### Finance Manager & Analytics / 財務管理＆アナリティクス
 * **Dual Income & Expense Tracking:** Log income (+) and expense (-) items with tailored category tags.
 * **Monthly Balance Card:** Displays monthly net surplus/deficit with color-coded primary green (`#4CAF50`) indicators.
 * **Collapsible History Breakdown:** Filter transaction history month-by-month with collapsible details view.
 
 ---
 
-## 🛠️ Technical Architecture / 技術アーキテクチャ
+## Technical Architecture / 技術アーキテクチャ
 
 RavenHub is built with high security and ultra-fast UI rendering in mind, bridging Jetpack Compose directly to compiled Rust libraries.
 
@@ -82,7 +82,7 @@ RavenHub is built for universal compatibility on all Android devices (API 26+) w
 
 ---
 
-## 🛡️ Security & Privacy / セキュリティ
+## Security & Privacy / セキュリティ
 
 * **Master Key Management:** Passwords and key materials are cached securely in memory using Conscrypt/Rust encryption.
 * **Auto-Lock Lifecycle:** Automatically locks app states when sent to background or killed.
@@ -98,7 +98,7 @@ We welcome contributions to make **RavenHub** even better!
 
 ---
 
-## 🧑‍💻 Core Developers & Credits / 開発者とクレジット
+## 🧑Core Developers & Credits / 開発者とクレジット
 
 ### Core Developers / 開発メンバー
 
@@ -121,7 +121,7 @@ We welcome contributions to make **RavenHub** even better!
 
 ---
 
-## 📜 License / ライセンス
+## License / ライセンス
 
 This project is licensed under the **Apache License 2.0**.
 

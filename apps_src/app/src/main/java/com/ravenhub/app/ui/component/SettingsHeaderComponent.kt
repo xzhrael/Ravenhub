@@ -66,8 +66,10 @@ fun AppInfoHeaderContent(modifier: Modifier = Modifier) {
     }
 
     val wallpaperBitmap by WallpaperCache.bitmapState
+    LaunchedEffect(Unit) {
+        WallpaperCache.init(context)
+    }
     
-
     val uptimeMillis = SystemClock.elapsedRealtime()
     val totalSeconds = uptimeMillis / 1000
     val days = totalSeconds / (24 * 3600)
@@ -98,11 +100,10 @@ fun AppInfoHeaderContent(modifier: Modifier = Modifier) {
                 .clip(RoundedCornerShape(15.dp)) 
                 .background(MaterialTheme.colorScheme.surfaceVariant) 
         ) {
-
             if (wallpaperBitmap != null) {
                 Image(
-                    bitmap = wallpaperBitmap!!, 
-                    contentDescription = stringResource(R.string.cd_wallpaper),
+                    bitmap = wallpaperBitmap!!,
+                    contentDescription = "Device Wallpaper",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )

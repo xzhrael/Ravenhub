@@ -298,7 +298,7 @@ fun VaultScreen(viewModel: VaultViewModel = viewModel()) {
                 }
             }
 
-            Spacer(Modifier.height(80.dp))
+            Spacer(Modifier.height(76.dp))
         }
     }
 

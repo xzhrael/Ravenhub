@@ -298,7 +298,7 @@ fun BannerCard(
     val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
     val customBannerUri = remember { context.getHeaderImage() }
-    val gradientAlpha = remember { context.getBannerGradientAlpha() }
+    val gradientAlpha = context.getBannerGradientAlpha()
     val isAlive = status == stringResource(R.string.status_alive)
     
     val globalHazeState = LocalAppHazeState.current

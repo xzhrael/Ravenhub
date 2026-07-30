@@ -38,8 +38,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.ui.platform.LocalUriHandler
+import com.ravenhub.app.ui.util.UpdateCheckerUtil
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -106,6 +108,7 @@ fun SettingsScreen(navController: NavController) {
     var optBackupNotes by remember { mutableStateOf(true) }
 
     var showRestoreDialog by remember { mutableStateOf(false) }
+    var showChangePinDialog by remember { mutableStateOf(false) }
     var pendingRestoreResult by remember { mutableStateOf<TweakViewModel.ValidationResult?>(null) }
     var optRestoreTweaks by remember { mutableStateOf(true) }
     var optRestoreApplist by remember { mutableStateOf(true) }
@@ -417,7 +420,16 @@ fun SettingsScreen(navController: NavController) {
                                                 }
                                             )
                                         },
-                                        leadingContent = { LeadingIcon(icon = Icons.Rounded.Security) },
+                                        leadingContent = { LeadingIcon(icon = Icons.Filled.Security) },
+                                        trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
+                                    )
+                                },
+                                {
+                                    ExpressiveListItem(
+                                        onClick = { showChangePinDialog = true },
+                                        headlineContent = { Text("Change Security PIN") },
+                                        supportingContent = { Text("Update your 4-8 digit master security PIN") },
+                                        leadingContent = { LeadingIcon(icon = Icons.Filled.Key) },
                                         trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
                                     )
                                 },
@@ -433,7 +445,57 @@ fun SettingsScreen(navController: NavController) {
                             )
                         )
                     }
-        
+                    item { SettingsSectionTitle("Updates & Version") }
+                    item {
+                        val updateResult by UpdateCheckerUtil.updateState
+                        val uriHandler = LocalUriHandler.current
+
+                        LaunchedEffect(Unit) {
+                            UpdateCheckerUtil.checkUpdate(context)
+                        }
+
+                        ExpressiveList(
+                            content = listOf {
+                                ExpressiveListItem(
+                                    onClick = {
+                                        if (updateResult.isUpdateAvailable) {
+                                            uriHandler.openUri(updateResult.downloadUrl)
+                                        } else {
+                                            coroutineScope.launch {
+                                                UpdateCheckerUtil.checkUpdate(context, force = true)
+                                                if (updateResult.errorMessage != null) {
+                                                    snackbarHostState.showSnackbar(updateResult.errorMessage!!)
+                                                } else if (!updateResult.isUpdateAvailable) {
+                                                    snackbarHostState.showSnackbar("RavenHub is up to date (v${BuildConfig.VERSION_NAME})")
+                                                }
+                                            }
+                                        }
+                                    },
+                                    headlineContent = {
+                                        Text(
+                                            if (updateResult.isUpdateAvailable) "Update Available (${updateResult.latestVersion})"
+                                            else "Check for Updates",
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    },
+                                    supportingContent = {
+                                        Text(
+                                            if (updateResult.isChecking) "Checking GitHub for updates..."
+                                            else if (updateResult.isUpdateAvailable) "New release found! Tap to download from GitHub"
+                                            else "Current version v${BuildConfig.VERSION_NAME} (Offline check)"
+                                        )
+                                    },
+                                    leadingContent = {
+                                        LeadingIcon(icon = if (updateResult.isUpdateAvailable) Icons.Filled.SystemUpdate else Icons.Filled.Sync)
+                                    },
+                                    trailingContent = {
+                                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                                    }
+                                )
+                            }
+                        )
+                    }
+
                     item { SettingsSectionTitle(stringResource(R.string.section_about)) }
                     item {
                         ExpressiveList(
@@ -449,6 +511,9 @@ fun SettingsScreen(navController: NavController) {
                                 )
                             }
                         )
+                    }
+                    item {
+                        Spacer(Modifier.height(76.dp))
                     }
                 }
             }
@@ -515,6 +580,16 @@ fun SettingsScreen(navController: NavController) {
                             }
                         )
                     }
+                }
+            }
+
+            if (showChangePinDialog) {
+                RootAppDialog {
+                    com.ravenhub.app.ui.security.LockScreen(
+                        mode = com.ravenhub.app.ui.security.LockMode.SETUP,
+                        onUnlocked = { showChangePinDialog = false },
+                        onCancel = { showChangePinDialog = false }
+                    )
                 }
             }
 
@@ -717,8 +792,9 @@ fun SettingsScreen(navController: NavController) {
                             backupFile.writeText(content)
                             val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.provider", backupFile)
                             val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                type = "application/json"
+                                type = "*/*"
                                 putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                putExtra(android.content.Intent.EXTRA_TITLE, "RavenHub_Backup_$timestamp.json")
                                 addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
                             context.startActivity(android.content.Intent.createChooser(shareIntent, "Backup to Cloud Storage..."))
@@ -747,6 +823,11 @@ fun SettingsScreen(navController: NavController) {
                         createDocLauncher.launch(dynamicFileName) 
                     }
                 ) {
+                    val checkboxColors = CheckboxDefaults.colors(
+                        checkedColor = MaterialTheme.colorScheme.primary,
+                        uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        checkmarkColor = MaterialTheme.colorScheme.onPrimary
+                    )
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = "Select the modules you wish to export to your backup file:",
@@ -755,19 +836,19 @@ fun SettingsScreen(navController: NavController) {
                         )
                         Spacer(Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupPlanner = !optBackupPlanner }) {
-                            Checkbox(checked = optBackupPlanner, onCheckedChange = { optBackupPlanner = it })
+                            Checkbox(checked = optBackupPlanner, onCheckedChange = { optBackupPlanner = it }, colors = checkboxColors)
                             Text("Planner (Todos & Habits)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupFinance = !optBackupFinance }) {
-                            Checkbox(checked = optBackupFinance, onCheckedChange = { optBackupFinance = it })
+                            Checkbox(checked = optBackupFinance, onCheckedChange = { optBackupFinance = it }, colors = checkboxColors)
                             Text("Finance (Expenses)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupVault = !optBackupVault }) {
-                            Checkbox(checked = optBackupVault, onCheckedChange = { optBackupVault = it })
+                            Checkbox(checked = optBackupVault, onCheckedChange = { optBackupVault = it }, colors = checkboxColors)
                             Text("Vault (Credentials & Encrypted Files)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupNotes = !optBackupNotes }) {
-                            Checkbox(checked = optBackupNotes, onCheckedChange = { optBackupNotes = it })
+                            Checkbox(checked = optBackupNotes, onCheckedChange = { optBackupNotes = it }, colors = checkboxColors)
                             Text("Notes (Markdown Notes & Backlinks)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
