@@ -482,7 +482,8 @@ fun SettingsScreen(navController: NavController) {
                                         Text(
                                             if (updateResult.isChecking) "Checking GitHub for updates..."
                                             else if (updateResult.isUpdateAvailable) "New release found! Tap to download from GitHub"
-                                            else "Current version v${BuildConfig.VERSION_NAME} (Offline check)"
+                                            else if (updateResult.errorMessage != null) "Current version v${BuildConfig.VERSION_NAME} (Offline check)"
+                                            else "Current version v${BuildConfig.VERSION_NAME} (Latest)"
                                         )
                                     },
                                     leadingContent = {
@@ -513,7 +514,7 @@ fun SettingsScreen(navController: NavController) {
                         )
                     }
                     item {
-                        Spacer(Modifier.height(100.dp))
+                        Spacer(Modifier.height(80.dp))
                     }
                 }
             }

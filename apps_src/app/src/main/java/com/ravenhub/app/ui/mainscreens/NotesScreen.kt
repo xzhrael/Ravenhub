@@ -220,7 +220,7 @@ fun NotesScreen(viewModel: NotesViewModel = viewModel()) {
                 )
             }
 
-            Spacer(Modifier.height(100.dp))
+            Spacer(Modifier.height(110.dp))
         }
     }
 

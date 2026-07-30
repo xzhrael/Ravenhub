@@ -298,7 +298,7 @@ fun VaultScreen(viewModel: VaultViewModel = viewModel()) {
                 }
             }
 
-            Spacer(Modifier.height(100.dp))
+            Spacer(Modifier.height(110.dp))
         }
     }
 
@@ -742,8 +742,11 @@ private fun AddCredentialSheet(
     var category by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
 
+    var isPasswordVisible by remember { mutableStateOf(false) }
+
     LaunchedEffect(visible, credentialToEdit) {
         if (visible) {
+            isPasswordVisible = false
             if (credentialToEdit != null) {
                 title = credentialToEdit.title
                 username = credentialToEdit.username
@@ -786,7 +789,16 @@ private fun AddCredentialSheet(
         OutlinedTextField(
             value = password, onValueChange = { password = it },
             label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) }, singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (isPasswordVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                    Icon(
+                        imageVector = if (isPasswordVisible) Icons.Rounded.Visibility else Icons.Rounded.VisibilityOff,
+                        contentDescription = if (isPasswordVisible) "Hide password" else "Show password",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
         )

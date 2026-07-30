@@ -44,15 +44,8 @@ object UpdateCheckerUtil {
     fun isInternetConnected(context: Context): Boolean {
         return try {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
-            val network = cm.activeNetwork
-            if (network == null) {
-                @Suppress("DEPRECATION")
-                return cm.activeNetworkInfo?.isConnected == true
-            }
-            val capabilities = cm.getNetworkCapabilities(network) ?: return false
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-            capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
+            val network = cm.activeNetwork ?: return true
+            val capabilities = cm.getNetworkCapabilities(network) ?: return true
             capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
         } catch (_: Exception) {
             true
@@ -63,15 +56,6 @@ object UpdateCheckerUtil {
         if (_updateState.value.isChecking) return
         if (!force && _updateState.value.isUpdateAvailable) return
 
-        // Offline-first check: Only run when internet connection is detected
-        if (!isInternetConnected(context)) {
-            _updateState.value = _updateState.value.copy(
-                isChecking = false,
-                errorMessage = "No internet connection"
-            )
-            return
-        }
-
         _updateState.value = _updateState.value.copy(isChecking = true, errorMessage = null)
 
         withContext(Dispatchers.IO) {
@@ -79,8 +63,8 @@ object UpdateCheckerUtil {
                 val url = URL("https://api.github.com/repos/xzhrael/Ravenhub/releases/latest")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "GET"
-                conn.connectTimeout = 4000
-                conn.readTimeout = 4000
+                conn.connectTimeout = 6000
+                conn.readTimeout = 6000
                 conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
                 conn.setRequestProperty("User-Agent", "RavenHub-App")
 
@@ -106,13 +90,13 @@ object UpdateCheckerUtil {
                 } else {
                     _updateState.value = _updateState.value.copy(
                         isChecking = false,
-                        errorMessage = "Server returned code ${conn.responseCode}"
+                        errorMessage = "Server returned ${conn.responseCode}"
                     )
                 }
             } catch (e: Exception) {
                 _updateState.value = _updateState.value.copy(
                     isChecking = false,
-                    errorMessage = e.message
+                    errorMessage = "No internet connection"
                 )
             }
         }
