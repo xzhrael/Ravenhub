@@ -7,6 +7,7 @@ apps_src/build/
 apps_src/app/build/
 overlay_src/
 RELEASE_NOTES.md
+setup_dev.sh
 
 # Rust build target
 **/target/
