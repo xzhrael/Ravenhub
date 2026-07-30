@@ -98,7 +98,7 @@ fun HomeScreen(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(
-                bottom = 76.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                bottom = 100.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
             )
         ) {
             item {

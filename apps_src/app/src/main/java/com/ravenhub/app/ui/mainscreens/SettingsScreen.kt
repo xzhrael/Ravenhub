@@ -513,7 +513,7 @@ fun SettingsScreen(navController: NavController) {
                         )
                     }
                     item {
-                        Spacer(Modifier.height(76.dp))
+                        Spacer(Modifier.height(100.dp))
                     }
                 }
             }
@@ -586,7 +586,7 @@ fun SettingsScreen(navController: NavController) {
             if (showChangePinDialog) {
                 RootAppDialog {
                     com.ravenhub.app.ui.security.LockScreen(
-                        mode = com.ravenhub.app.ui.security.LockMode.SETUP,
+                        mode = com.ravenhub.app.ui.security.LockMode.CHANGE_PIN,
                         onUnlocked = { showChangePinDialog = false },
                         onCancel = { showChangePinDialog = false }
                     )
@@ -837,19 +837,19 @@ fun SettingsScreen(navController: NavController) {
                         Spacer(Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupPlanner = !optBackupPlanner }) {
                             Checkbox(checked = optBackupPlanner, onCheckedChange = { optBackupPlanner = it }, colors = checkboxColors)
-                            Text("Planner (Todos & Habits)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+                            Text("Planner", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupFinance = !optBackupFinance }) {
                             Checkbox(checked = optBackupFinance, onCheckedChange = { optBackupFinance = it }, colors = checkboxColors)
-                            Text("Finance (Expenses)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+                            Text("Finance", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupVault = !optBackupVault }) {
                             Checkbox(checked = optBackupVault, onCheckedChange = { optBackupVault = it }, colors = checkboxColors)
-                            Text("Vault (Credentials & Encrypted Files)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+                            Text("Vault", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupNotes = !optBackupNotes }) {
                             Checkbox(checked = optBackupNotes, onCheckedChange = { optBackupNotes = it }, colors = checkboxColors)
-                            Text("Notes (Markdown Notes & Backlinks)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+                            Text("Notes", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }

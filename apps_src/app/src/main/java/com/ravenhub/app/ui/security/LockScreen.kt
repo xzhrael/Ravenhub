@@ -22,7 +22,8 @@ import com.ravenhub.app.security.MasterKeyManager
 enum class LockMode {
     SETUP,
     UNLOCK,
-    REAUTH
+    REAUTH,
+    CHANGE_PIN
 }
 
 @Composable
@@ -34,7 +35,9 @@ fun LockScreen(
     val context = LocalContext.current
     var pinText by remember { mutableStateOf("") }
     var confirmPinText by remember { mutableStateOf("") }
+    var newPinText by remember { mutableStateOf("") }
     var isConfirmStep by remember { mutableStateOf(false) }
+    var changeStep by remember { mutableIntStateOf(0) } // 0: current, 1: new, 2: confirm
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val isInputValid = pinText.length in 4..8 && pinText.all { it.isDigit() }
@@ -73,6 +76,11 @@ fun LockScreen(
                         LockMode.SETUP -> if (isConfirmStep) "Confirm PIN" else "Set Security PIN"
                         LockMode.UNLOCK -> "Unlock RavenHub"
                         LockMode.REAUTH -> "Security Re-Authentication"
+                        LockMode.CHANGE_PIN -> when (changeStep) {
+                            0 -> "Enter Current PIN"
+                            1 -> "Enter New PIN"
+                            else -> "Confirm New PIN"
+                        }
                     },
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
@@ -83,6 +91,11 @@ fun LockScreen(
                         LockMode.SETUP -> if (isConfirmStep) "Re-enter 4-8 digit numeric PIN" else "Enter a 4-8 digit numeric PIN"
                         LockMode.UNLOCK -> "Enter PIN to access your encrypted suite"
                         LockMode.REAUTH -> "Enter PIN to confirm sensitive action"
+                        LockMode.CHANGE_PIN -> when (changeStep) {
+                            0 -> "Verify your existing master security PIN"
+                            1 -> "Enter a new 4-8 digit numeric PIN"
+                            else -> "Re-enter your new PIN to confirm"
+                        }
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -148,6 +161,36 @@ fun LockScreen(
                                 pinText = ""
                             }
                         }
+                        LockMode.CHANGE_PIN -> {
+                            when (changeStep) {
+                                0 -> {
+                                    if (MasterKeyManager.verifyPin(context, pinText)) {
+                                        pinText = ""
+                                        changeStep = 1
+                                    } else {
+                                        errorMessage = "Incorrect current PIN. Try again."
+                                        pinText = ""
+                                    }
+                                }
+                                1 -> {
+                                    newPinText = pinText
+                                    pinText = ""
+                                    changeStep = 2
+                                }
+                                2 -> {
+                                    if (pinText == newPinText) {
+                                        MasterKeyManager.getOrCreateMasterKey(context, pinText)
+                                        Toast.makeText(context, "PIN changed successfully", Toast.LENGTH_SHORT).show()
+                                        onUnlocked()
+                                    } else {
+                                        errorMessage = "New PINs do not match. Try again."
+                                        pinText = ""
+                                        newPinText = ""
+                                        changeStep = 1
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
                 enabled = isInputValid,
@@ -161,6 +204,11 @@ fun LockScreen(
                         LockMode.SETUP -> if (isConfirmStep) "Confirm & Encrypt" else "Continue"
                         LockMode.UNLOCK -> "Unlock App"
                         LockMode.REAUTH -> "Confirm Re-Auth"
+                        LockMode.CHANGE_PIN -> when (changeStep) {
+                            0 -> "Verify Current PIN"
+                            1 -> "Continue"
+                            else -> "Save New PIN"
+                        }
                     },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
