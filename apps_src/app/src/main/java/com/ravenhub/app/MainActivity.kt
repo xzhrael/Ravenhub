@@ -400,7 +400,7 @@ fun BottomNavBar(
             items.forEach { item ->
                 val isSelected = selectedRoute == item.route
                 val itemWeight by animateFloatAsState(
-                    targetValue = if (isSelected) 1f else 0.5f,
+                    targetValue = if (isSelected) 1.2f else 0.8f,
                     animationSpec = tween(400, easing = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1.0f)),
                     label = "itemWeight_${item.route}"
                 )
@@ -456,7 +456,7 @@ private fun NavPill(
         contentColor = contentColor
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp),
+            modifier = Modifier.padding(horizontal = if (isSelected) 12.dp else 8.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {

@@ -40,6 +40,8 @@ import com.ravenhub.app.ui.component.ExpressiveList
 import com.ravenhub.app.ui.component.ExpressiveListItem
 import com.ravenhub.app.ui.component.LocalAppHazeState
 import com.ravenhub.app.ui.component.LocalBlurEnabled
+import com.ravenhub.app.ui.component.MediaBannerRenderer
+import com.ravenhub.app.ui.util.getHeaderImage
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
@@ -225,8 +227,9 @@ fun HomeScreen(navController: NavController) {
 
 @Composable
 private fun HeroBannerCard() {
+    val context = LocalContext.current
     val colorScheme = MaterialTheme.colorScheme
-    val isBlurEnabled = com.ravenhub.app.ui.component.LocalBlurEnabled.current
+    val customBannerUri = remember { context.getHeaderImage() }
 
     Card(
         modifier = Modifier
@@ -236,10 +239,8 @@ private fun HeroBannerCard() {
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Image(
-                painter = painterResource(R.drawable.banner_bg),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
+            MediaBannerRenderer(
+                uriString = customBannerUri,
                 modifier = Modifier.fillMaxSize()
             )
             Box(

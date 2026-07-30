@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +47,7 @@ import com.ravenhub.app.ui.util.AppLifecycleManager
 import com.ravenhub.app.ui.viewmodel.VaultViewModel
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -85,7 +87,7 @@ fun VaultScreen(viewModel: VaultViewModel = viewModel()) {
 
     // Pending SAF export state
     var pendingExportEntries by remember { mutableStateOf<List<VaultFileEntry>>(emptyList()) }
-    var pendingExportAsEncrypted by remember { mutableStateOf(true) }
+    var pendingExportAsEncrypted by rememberSaveable { mutableStateOf(true) }
 
     // SAF CreateDocument Launcher (User selects where to save export file)
     val createDocLauncher = rememberLauncherForActivityResult(
@@ -216,9 +218,13 @@ fun VaultScreen(viewModel: VaultViewModel = viewModel()) {
             }
         }
     ) { innerPadding ->
+        val isBlurEnabled = com.ravenhub.app.ui.component.LocalBlurEnabled.current
+        val hazeState = com.ravenhub.app.ui.component.LocalAppHazeState.current
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .then(if (isBlurEnabled && hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)

@@ -54,13 +54,12 @@ object RustSecurityBridge {
     }
 
     fun decryptFileChunked(inputPath: String, outputPath: String, key: ByteArray) {
-        try {
-            val inputFile = java.io.File(inputPath)
-            val outputFile = java.io.File(outputPath)
-            val decrypted = decryptBytes(key, inputFile.readBytes())
-            outputFile.writeBytes(decrypted)
-        } catch (e: Throwable) {
-            Log.e(TAG, "decryptFileChunked error: ${e.message}", e)
+        val inputFile = java.io.File(inputPath)
+        val outputFile = java.io.File(outputPath)
+        val decrypted = decryptBytes(key, inputFile.readBytes())
+        if (decrypted.isEmpty() && inputFile.length() > 0) {
+            throw java.security.GeneralSecurityException("Decryption failed or invalid key")
         }
+        outputFile.writeBytes(decrypted)
     }
 }

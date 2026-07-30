@@ -32,6 +32,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import dev.chrisbanes.haze.hazeSource
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(viewModel: NotesViewModel = viewModel()) {
@@ -96,9 +98,13 @@ fun NotesScreen(viewModel: NotesViewModel = viewModel()) {
             }
         }
     ) { innerPadding ->
+        val isBlurEnabled = com.ravenhub.app.ui.component.LocalBlurEnabled.current
+        val hazeState = com.ravenhub.app.ui.component.LocalAppHazeState.current
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .then(if (isBlurEnabled && hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)

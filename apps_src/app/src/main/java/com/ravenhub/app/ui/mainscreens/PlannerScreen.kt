@@ -8,6 +8,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -17,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -33,6 +35,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ravenhub.app.data.planner.HabitFrequency
 import com.ravenhub.app.data.planner.HabitItem
+import com.ravenhub.app.data.planner.SubTaskItem
 import com.ravenhub.app.data.planner.TodoItem
 import com.ravenhub.app.notification.TodoScheduler
 import com.ravenhub.app.ui.component.CustomBottomSheet
@@ -110,6 +113,7 @@ fun PlannerScreen(viewModel: PlannerViewModel = viewModel()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .then(if (isBlurEnabled && hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier)
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -139,10 +143,8 @@ fun PlannerScreen(viewModel: PlannerViewModel = viewModel()) {
                         categories = categories,
                         selectedCategory = selectedCategory,
                         onCategorySelected = { selectedCategory = it },
-                        onToggle = { id ->
-                            viewModel.toggleTodo(id)
-                            TodoScheduler.cancel(context, id)
-                        },
+                        onToggle = { viewModel.toggleTodo(it) },
+                        onToggleSubTask = { todoId, subTaskId -> viewModel.toggleSubTask(todoId, subTaskId) },
                         onEdit = { todo ->
                             editingTodo = todo
                             showAddTodo = true
@@ -226,16 +228,16 @@ fun PlannerScreen(viewModel: PlannerViewModel = viewModel()) {
             visible = showAddTodo,
             todoToEdit = editingTodo,
             onDismiss = { showAddTodo = false },
-            onSave = { title, category, dueDateTime, reminderOffset ->
+            onSave = { title, category, dueDateTime, reminderOffset, subTasks ->
                 if (editingTodo != null) {
-                    val updated = viewModel.updateTodo(editingTodo!!.id, title, category, dueDateTime, reminderOffset)
+                    val updated = viewModel.updateTodo(editingTodo!!.id, title, category, dueDateTime, reminderOffset, subTasks)
                     if (dueDateTime != null) {
                         TodoScheduler.schedule(context, updated)
                     } else {
                         TodoScheduler.cancel(context, editingTodo!!.id)
                     }
                 } else {
-                    val newTodo = viewModel.addTodo(title, category, dueDateTime, reminderOffset)
+                    val newTodo = viewModel.addTodo(title, category, dueDateTime, reminderOffset, subTasks)
                     if (dueDateTime != null) {
                         TodoScheduler.schedule(context, newTodo)
                     }
@@ -270,13 +272,13 @@ private fun TodoTab(
     selectedCategory: String?,
     onCategorySelected: (String?) -> Unit,
     onToggle: (String) -> Unit,
+    onToggleSubTask: (String, String) -> Unit,
     onEdit: (TodoItem) -> Unit,
     onDelete: (String) -> Unit
 ) {
     val dateFormat = remember { SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()) }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Filter chips
         if (categories.isNotEmpty()) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
@@ -306,49 +308,99 @@ private fun TodoTab(
             ExpressiveList(
                 content = filtered.map { todo ->
                     {
-                        ExpressiveListItem(
-                            onClick = { onEdit(todo) },
-                            onLongClick = { onDelete(todo.id) },
-                            headlineContent = {
-                                Text(
-                                    text = todo.title,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    textDecoration = if (todo.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
-                                    color = if (todo.isCompleted) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            },
-                            supportingContent = {
-                                Column {
-                                    if (todo.category.isNotBlank()) {
-                                        Text(todo.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        var isTreeExpanded by remember { mutableStateOf(false) }
+
+                        Column {
+                            ExpressiveListItem(
+                                onClick = { onEdit(todo) },
+                                onLongClick = { onDelete(todo.id) },
+                                headlineContent = {
+                                    Text(
+                                        text = todo.title,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        textDecoration = if (todo.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                                        color = if (todo.isCompleted) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                },
+                                supportingContent = {
+                                    Column {
+                                        if (todo.category.isNotBlank()) {
+                                            Text(todo.category, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        }
+                                        if (todo.dueDateTime != null) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Icon(Icons.Rounded.Schedule, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.tertiary)
+                                                Text(dateFormat.format(todo.dueDateTime), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                                            }
+                                        }
+                                        if (todo.subTasks.isNotEmpty()) {
+                                            val completedCount = todo.subTasks.count { it.isCompleted }
+                                            Text(
+                                                text = "Tree Steps: $completedCount/${todo.subTasks.size} completed",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
-                                    if (todo.dueDateTime != null) {
-                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Icon(Icons.Rounded.Schedule, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.tertiary)
-                                            Text(dateFormat.format(todo.dueDateTime), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                                },
+                                leadingContent = {
+                                    Checkbox(
+                                        checked = todo.isCompleted,
+                                        onCheckedChange = { onToggle(todo.id) }
+                                    )
+                                },
+                                trailingContent = {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        if (todo.subTasks.isNotEmpty()) {
+                                            IconButton(onClick = { isTreeExpanded = !isTreeExpanded }, modifier = Modifier.size(40.dp)) {
+                                                Icon(
+                                                    if (isTreeExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                                    "Toggle Steps",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                        IconButton(onClick = { onEdit(todo) }, modifier = Modifier.size(40.dp)) {
+                                            Icon(Icons.Rounded.Edit, "Edit", Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        IconButton(onClick = { onDelete(todo.id) }, modifier = Modifier.size(40.dp)) {
+                                            Icon(Icons.Rounded.Close, "Delete", Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
                                     }
                                 }
-                            },
-                            leadingContent = {
-                                Checkbox(
-                                    checked = todo.isCompleted,
-                                    onCheckedChange = { onToggle(todo.id) }
-                                )
-                            },
-                            trailingContent = {
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    IconButton(onClick = { onEdit(todo) }, modifier = Modifier.size(40.dp)) {
-                                        Icon(Icons.Rounded.Edit, "Edit", Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    IconButton(onClick = { onDelete(todo.id) }, modifier = Modifier.size(40.dp)) {
-                                        Icon(Icons.Rounded.Close, "Delete", Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            )
+
+                            AnimatedVisibility(visible = isTreeExpanded && todo.subTasks.isNotEmpty()) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 32.dp, end = 16.dp, bottom = 8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    todo.subTasks.forEach { sub ->
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth().clickable { onToggleSubTask(todo.id, sub.id) }
+                                        ) {
+                                            Checkbox(
+                                                checked = sub.isCompleted,
+                                                onCheckedChange = { onToggleSubTask(todo.id, sub.id) }
+                                            )
+                                            Text(
+                                                text = sub.title,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                textDecoration = if (sub.isCompleted) TextDecoration.LineThrough else TextDecoration.None,
+                                                color = if (sub.isCompleted) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        )
+                        }
                     }
                 }
             )
@@ -443,14 +495,16 @@ private fun AddTodoSheet(
     visible: Boolean,
     todoToEdit: TodoItem? = null,
     onDismiss: () -> Unit,
-    onSave: (String, String, Long?, Int?) -> Unit
+    onSave: (String, String, Long?, Int?, List<SubTaskItem>) -> Unit
 ) {
-    val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var selectedCalendar by remember { mutableStateOf<Calendar?>(null) }
-    var reminderOffset by remember { mutableStateOf(0) }
+    var reminderOffset by remember { mutableIntStateOf(0) }
+    var subTasks by remember { mutableStateOf<List<SubTaskItem>>(emptyList()) }
+    var newSubTaskInput by remember { mutableStateOf("") }
 
+    val context = LocalContext.current
     val notifPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {}
@@ -464,12 +518,15 @@ private fun AddTodoSheet(
                 category = todoToEdit.category
                 selectedCalendar = todoToEdit.dueDateTime?.let { Calendar.getInstance().apply { timeInMillis = it } }
                 reminderOffset = todoToEdit.reminderOffsetMinutes ?: 0
+                subTasks = todoToEdit.subTasks
             } else {
                 title = ""
                 category = ""
                 selectedCalendar = null
                 reminderOffset = 0
+                subTasks = emptyList()
             }
+            newSubTaskInput = ""
         }
     }
 
@@ -522,6 +579,51 @@ private fun AddTodoSheet(
         )
         Spacer(Modifier.height(12.dp))
 
+        // Sub-task Tree Items Input
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Tree Sub-tasks / Steps (optional)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = newSubTaskInput,
+                    onValueChange = { newSubTaskInput = it },
+                    label = { Text("Add sub-task step", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(
+                    onClick = {
+                        if (newSubTaskInput.isNotBlank()) {
+                            subTasks = subTasks + SubTaskItem(title = newSubTaskInput.trim())
+                            newSubTaskInput = ""
+                        }
+                    },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(Icons.Rounded.AddCircle, "Add step", tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            if (subTasks.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    subTasks.forEachIndexed { index, sub ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("• ${sub.title}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            IconButton(onClick = { subTasks = subTasks.filterIndexed { i, _ -> i != index } }, modifier = Modifier.size(36.dp)) {
+                                Icon(Icons.Rounded.Close, "Remove", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -550,7 +652,7 @@ private fun AddTodoSheet(
         Button(
             onClick = {
                 if (title.isNotBlank()) {
-                    onSave(title.trim(), category.trim(), selectedCalendar?.timeInMillis, if (selectedCalendar != null) reminderOffset else null)
+                    onSave(title.trim(), category.trim(), selectedCalendar?.timeInMillis, if (selectedCalendar != null) reminderOffset else null, subTasks)
                 }
             },
             enabled = title.isNotBlank(),

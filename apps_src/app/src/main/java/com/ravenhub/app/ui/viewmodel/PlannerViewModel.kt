@@ -17,9 +17,10 @@ class PlannerViewModel(app: Application) : AndroidViewModel(app) {
         title: String,
         category: String,
         dueDateTime: Long? = null,
-        reminderOffsetMinutes: Int? = null
+        reminderOffsetMinutes: Int? = null,
+        subTasks: List<SubTaskItem> = emptyList()
     ): TodoItem {
-        return PlannerDataManager.addTodo(getApplication(), title, category, dueDateTime, reminderOffsetMinutes)
+        return PlannerDataManager.addTodo(getApplication(), title, category, dueDateTime, reminderOffsetMinutes, subTasks)
     }
 
     fun updateTodo(
@@ -27,13 +28,18 @@ class PlannerViewModel(app: Application) : AndroidViewModel(app) {
         title: String,
         category: String,
         dueDateTime: Long? = null,
-        reminderOffsetMinutes: Int? = null
+        reminderOffsetMinutes: Int? = null,
+        subTasks: List<SubTaskItem> = emptyList()
     ): TodoItem {
-        return PlannerDataManager.updateTodo(getApplication(), id, title, category, dueDateTime, reminderOffsetMinutes)
+        return PlannerDataManager.updateTodo(getApplication(), id, title, category, dueDateTime, reminderOffsetMinutes, subTasks)
     }
 
     fun toggleTodo(id: String) {
         PlannerDataManager.toggleTodo(getApplication(), id)
+    }
+
+    fun toggleSubTask(todoId: String, subTaskId: String) {
+        PlannerDataManager.toggleSubTask(getApplication(), todoId, subTaskId)
     }
 
     fun deleteTodo(id: String) {

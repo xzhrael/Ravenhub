@@ -4,6 +4,13 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 @Serializable
+data class SubTaskItem(
+    val id: String = UUID.randomUUID().toString(),
+    val title: String,
+    val isCompleted: Boolean = false
+)
+
+@Serializable
 data class TodoItem(
     val id: String = UUID.randomUUID().toString(),
     val title: String,
@@ -11,6 +18,7 @@ data class TodoItem(
     val isCompleted: Boolean = false,
     val dueDateTime: Long? = null,
     val reminderOffsetMinutes: Int? = null,
+    val subTasks: List<SubTaskItem> = emptyList(),
     val createdAt: Long = System.currentTimeMillis()
 )
 

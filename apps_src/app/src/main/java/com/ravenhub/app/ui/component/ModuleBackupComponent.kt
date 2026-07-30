@@ -18,34 +18,28 @@
 
 package com.ravenhub.app.ui.component
 
-
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ravenhub.app.R
-import com.ravenhub.app.ui.component.*
-
 
 @Composable
 fun BackupRestoreBottomSheet(
     show: Boolean,
     onDismiss: () -> Unit,
     onBackup: () -> Unit,
-    onRestore: () -> Unit
+    onRestore: () -> Unit,
+    onCloudBackup: () -> Unit = {}
 ) {
     CustomBottomSheet(
         visible = show,
@@ -76,6 +70,17 @@ fun BackupRestoreBottomSheet(
                             onClick = {
                                 onDismiss()
                                 onBackup()
+                            }
+                        )
+                    },
+                    {
+                        ExpressiveListItem(
+                            headlineContent = { Text("Backup to Cloud Storage", color = MaterialTheme.colorScheme.onSurface) },
+                            supportingContent = { Text("Export backup directly to Google Drive, Dropbox, Nextcloud or cloud apps", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            leadingContent = { SmallLeadingIcon(Icons.Rounded.CloudUpload) },
+                            onClick = {
+                                onDismiss()
+                                onCloudBackup()
                             }
                         )
                     },

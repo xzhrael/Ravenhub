@@ -106,8 +106,21 @@ fun MediaBannerRenderer(
     val context = LocalContext.current
 
     if (uriString == null) {
-        Image(
-            painter = painterResource(id = R.drawable.banner_bg),
+        val imageLoader = remember {
+            ImageLoader.Builder(context)
+                .components {
+                    if (Build.VERSION.SDK_INT >= 28) {
+                        add(ImageDecoderDecoder.Factory())
+                    } else {
+                        add(GifDecoder.Factory())
+                    }
+                }
+                .build()
+        }
+
+        AsyncImage(
+            model = R.drawable.banner_bg,
+            imageLoader = imageLoader,
             contentDescription = null,
             modifier = modifier,
             contentScale = ContentScale.Crop

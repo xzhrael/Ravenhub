@@ -36,13 +36,15 @@ object PlannerDataManager {
         title: String,
         category: String,
         dueDateTime: Long? = null,
-        reminderOffsetMinutes: Int? = null
+        reminderOffsetMinutes: Int? = null,
+        subTasks: List<SubTaskItem> = emptyList()
     ): TodoItem {
         val todo = TodoItem(
             title = title,
             category = category,
             dueDateTime = dueDateTime,
-            reminderOffsetMinutes = reminderOffsetMinutes
+            reminderOffsetMinutes = reminderOffsetMinutes,
+            subTasks = subTasks
         )
         persist(context, _data.value.copy(todos = _data.value.todos + todo))
         return todo
@@ -54,15 +56,18 @@ object PlannerDataManager {
         title: String,
         category: String,
         dueDateTime: Long? = null,
-        reminderOffsetMinutes: Int? = null
+        reminderOffsetMinutes: Int? = null,
+        subTasks: List<SubTaskItem> = emptyList()
     ): TodoItem {
+        val existing = _data.value.todos.find { it.id == id }
         val updated = TodoItem(
             id = id,
             title = title,
             category = category,
             dueDateTime = dueDateTime,
             reminderOffsetMinutes = reminderOffsetMinutes,
-            isCompleted = _data.value.todos.find { it.id == id }?.isCompleted ?: false
+            subTasks = subTasks,
+            isCompleted = existing?.isCompleted ?: false
         )
         persist(context, _data.value.copy(todos = _data.value.todos.map { if (it.id == id) updated else it }))
         return updated
@@ -74,6 +79,23 @@ object PlannerDataManager {
             _data.value.copy(
                 todos = _data.value.todos.map {
                     if (it.id == id) it.copy(isCompleted = !it.isCompleted) else it
+                }
+            )
+        )
+    }
+
+    fun toggleSubTask(context: Context, todoId: String, subTaskId: String) {
+        persist(
+            context,
+            _data.value.copy(
+                todos = _data.value.todos.map { todo ->
+                    if (todo.id == todoId) {
+                        val updatedSubTasks = todo.subTasks.map { sub ->
+                            if (sub.id == subTaskId) sub.copy(isCompleted = !sub.isCompleted) else sub
+                        }
+                        val allSubCompleted = updatedSubTasks.isNotEmpty() && updatedSubTasks.all { it.isCompleted }
+                        todo.copy(subTasks = updatedSubTasks, isCompleted = if (allSubCompleted) true else todo.isCompleted)
+                    } else todo
                 }
             )
         )

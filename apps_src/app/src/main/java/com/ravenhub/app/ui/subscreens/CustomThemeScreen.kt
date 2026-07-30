@@ -941,7 +941,12 @@ private fun ThemePreviewCard(keyColor: Int, colorSpec: ColorSpec.SpecVersion, is
                         .height(75.dp),
                     shape = RoundedCornerShape(16.dp),
                     color = colorScheme.secondaryContainer.copy(alpha = 0.6f)
-                ) {}
+                ) {
+                    com.ravenhub.app.ui.component.MediaBannerRenderer(
+                        uriString = context.getHeaderImage(),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Surface(

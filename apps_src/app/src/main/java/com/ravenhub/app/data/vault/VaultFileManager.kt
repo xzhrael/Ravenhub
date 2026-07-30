@@ -91,7 +91,12 @@ object VaultFileManager {
                 outputPath = tempFile.absolutePath,
                 key = key
             )
-            tempFile
+            if (tempFile.exists() && tempFile.length() > 0) {
+                tempFile
+            } else {
+                tempFile.delete()
+                null
+            }
         } catch (_: Exception) {
             tempFile.delete()
             null

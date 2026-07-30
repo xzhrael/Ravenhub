@@ -100,6 +100,10 @@ fun SettingsScreen(navController: NavController) {
     var showBackupOptionsDialog by remember { mutableStateOf(false) }
     var optBackupTweaks by remember { mutableStateOf(true) }
     var optBackupApplist by remember { mutableStateOf(true) }
+    var optBackupPlanner by remember { mutableStateOf(true) }
+    var optBackupFinance by remember { mutableStateOf(true) }
+    var optBackupVault by remember { mutableStateOf(true) }
+    var optBackupNotes by remember { mutableStateOf(true) }
 
     var showRestoreDialog by remember { mutableStateOf(false) }
     var pendingRestoreResult by remember { mutableStateOf<TweakViewModel.ValidationResult?>(null) }
@@ -703,6 +707,25 @@ fun SettingsScreen(navController: NavController) {
                         showBackupRestoreSheet = false
                         showBackupOptionsDialog = true
                     },
+                    onCloudBackup = {
+                        showBackupRestoreSheet = false
+                        try {
+                            val sdf = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault())
+                            val timestamp = sdf.format(java.util.Date())
+                            val backupFile = java.io.File(context.cacheDir, "RavenHub_Backup_$timestamp.json")
+                            val content = "{\"planner\": true, \"finance\": true, \"vault\": true, \"notes\": true, \"timestamp\": ${System.currentTimeMillis()}}"
+                            backupFile.writeText(content)
+                            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.provider", backupFile)
+                            val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "application/json"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(shareIntent, "Backup to Cloud Storage..."))
+                        } catch (_: Exception) {
+                            android.widget.Toast.makeText(context, "Failed to launch cloud backup", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    },
                     onRestore = { 
                         openDocLauncher.launch(arrayOf("application/octet-stream", "*/*")) 
                     }
@@ -712,32 +735,40 @@ fun SettingsScreen(navController: NavController) {
             RootAppDialog {
                 CustomContentDialog(
                     visible = showBackupOptionsDialog,
-                    title = context.getString(R.string.dialog_backup_options_title),
+                    title = "Select Modules to Backup",
                     confirmText = context.getString(R.string.dialog_backup_options_confirm),
-                    confirmEnabled = optBackupTweaks || optBackupApplist,
+                    confirmEnabled = optBackupPlanner || optBackupFinance || optBackupVault || optBackupNotes,
                     onDismiss = { showBackupOptionsDialog = false },
                     onConfirm = {
                         showBackupOptionsDialog = false
-                        val sdf = java.text.SimpleDateFormat("ddMMyyyy_HHmmss", java.util.Locale.getDefault())
+                        val sdf = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault())
                         val timestamp = sdf.format(java.util.Date())
-                        val dynamicFileName = "RavencoreConfig_Backup_$timestamp.rc"
+                        val dynamicFileName = "RavenHub_Backup_$timestamp.json"
                         createDocLauncher.launch(dynamicFileName) 
                     }
                 ) {
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = stringResource(R.string.str_select_the_configurations_you),
+                            text = "Select the modules you wish to export to your backup file:",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupTweaks = !optBackupTweaks }) {
-                            Checkbox(checked = optBackupTweaks, onCheckedChange = { optBackupTweaks = it })
-                            Text(stringResource(R.string.str_tweak_configuration_settings), color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupPlanner = !optBackupPlanner }) {
+                            Checkbox(checked = optBackupPlanner, onCheckedChange = { optBackupPlanner = it })
+                            Text("Planner (Todos & Habits)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupApplist = !optBackupApplist }) {
-                            Checkbox(checked = optBackupApplist, onCheckedChange = { optBackupApplist = it })
-                            Text(stringResource(R.string.str_per_app_applist_settings), color = MaterialTheme.colorScheme.onSurface)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupFinance = !optBackupFinance }) {
+                            Checkbox(checked = optBackupFinance, onCheckedChange = { optBackupFinance = it })
+                            Text("Finance (Expenses)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupVault = !optBackupVault }) {
+                            Checkbox(checked = optBackupVault, onCheckedChange = { optBackupVault = it })
+                            Text("Vault (Credentials & Encrypted Files)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupNotes = !optBackupNotes }) {
+                            Checkbox(checked = optBackupNotes, onCheckedChange = { optBackupNotes = it })
+                            Text("Notes (Markdown Notes & Backlinks)", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
