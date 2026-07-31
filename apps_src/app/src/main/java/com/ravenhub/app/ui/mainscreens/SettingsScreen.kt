@@ -34,6 +34,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -102,6 +104,8 @@ fun SettingsScreen(navController: NavController) {
     var optBackupVault by remember { mutableStateOf(true) }
     var optBackupNotes by remember { mutableStateOf(true) }
 
+    var pendingRestoreFile by remember { mutableStateOf<File?>(null) }
+    var showRestorePinPrompt by remember { mutableStateOf(false) }
     var showRestoreDialog by remember { mutableStateOf(false) }
     var showChangePinDialog by remember { mutableStateOf(false) }
     var showChangelogSheet by remember { mutableStateOf(false) }
@@ -202,17 +206,12 @@ fun SettingsScreen(navController: NavController) {
     ) { uri ->
         uri?.let { sourceUri ->
             coroutineScope.launch {
-                val tempZip = java.io.File(context.cacheDir, "restore_temp.zip")
+                val tempZip = java.io.File(context.cacheDir, "restore_temp_${System.currentTimeMillis()}.zip")
                 context.contentResolver.openInputStream(sourceUri)?.use { input ->
                     tempZip.outputStream().use { out -> input.copyTo(out) }
                 }
-                val success = com.ravenhub.app.backup.BackupManager.restoreBackupZip(context, tempZip)
-                tempZip.delete()
-                if (success) {
-                    snackbarHostState.showSnackbar("Backup restored successfully!")
-                } else {
-                    snackbarHostState.showSnackbar("Failed to restore backup.")
-                }
+                pendingRestoreFile = tempZip
+                showRestorePinPrompt = true
             }
         }
     }
@@ -456,187 +455,91 @@ fun SettingsScreen(navController: NavController) {
                 }
             }
 
-            RootAppDialog {
-                if (showBackupRestoreSheet) {
-                    com.ravenhub.app.ui.component.CustomBottomSheet(
-                        visible = showBackupRestoreSheet,
-                        onDismiss = { showBackupRestoreSheet = false }
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp)
-                        ) {
-                            Text(
-                                text = "Backup & Restore Data",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                            )
+            if (showRestorePinPrompt && pendingRestoreFile != null) {
+                RootAppDialog {
+                    var pinInput by remember { mutableStateOf("") }
+                    var pinError by remember { mutableStateOf<String?>(null) }
 
-                            ExpressiveList(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                content = listOf(
-                                    {
-                                        ExpressiveListItem(
-                                            onClick = {
-                                                isCloudBackup = false
-                                                showBackupRestoreSheet = false
-                                                showBackupOptionsDialog = true
-                                            },
-                                            headlineContent = { Text("Backup Local Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
-                                            supportingContent = { Text("Export encrypted backup file to local device storage", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.FileUpload) },
-                                            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
-                                        )
-                                    },
-                                    {
-                                        ExpressiveListItem(
-                                            onClick = {
-                                                isCloudBackup = true
-                                                showBackupRestoreSheet = false
-                                                showBackupOptionsDialog = true
-                                            },
-                                            headlineContent = { Text("Backup to Cloud Storage", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
-                                            supportingContent = { Text("Export encrypted backup to Google Drive, OneDrive, or Cloud SAF", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.CloudUpload) },
-                                            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
-                                        )
-                                    },
-                                    {
-                                        ExpressiveListItem(
-                                            onClick = {
-                                                showBackupRestoreSheet = false
-                                                openDocLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
-                                            },
-                                            headlineContent = { Text("Restore Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
-                                            supportingContent = { Text("Import backup file from Local or Cloud Storage into RavenHub", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.FileDownload) },
-                                            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
-                                        )
-                                    }
+                    AlertDialog(
+                        onDismissRequest = {
+                            showRestorePinPrompt = false
+                            pendingRestoreFile?.delete()
+                            pendingRestoreFile = null
+                        },
+                        icon = { Icon(Icons.Rounded.Lock, null, tint = MaterialTheme.colorScheme.primary) },
+                        title = { Text("Backup Security PIN Required", fontWeight = FontWeight.Bold) },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    "Enter the 4-8 digit Security PIN used when this backup archive was created:",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                            )
-                        }
-                    }
-                }
-            }
-
-            RootAppDialog {
-                if (showBackupOptionsDialog) {
-                    com.ravenhub.app.ui.component.CustomBottomSheet(
-                        visible = showBackupOptionsDialog,
-                        onDismiss = { showBackupOptionsDialog = false }
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .verticalScroll(rememberScrollState())
-                                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp)
-                        ) {
-                            Text(
-                                text = if (isCloudBackup) "Select Modules for Cloud Backup" else "Select Modules for Local Backup",
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                            )
-
-                            ExpressiveList(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                content = listOf(
-                                    {
-                                        ExpressiveListItem(
-                                            onClick = { optBackupPlanner = !optBackupPlanner },
-                                            headlineContent = { Text("Planner", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
-                                            supportingContent = { Text("Export todos, sub-task checklist trees, and habits", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.Checklist) },
-                                            trailingContent = {
-                                                Checkbox(
-                                                    checked = optBackupPlanner,
-                                                    onCheckedChange = { optBackupPlanner = it }
-                                                )
-                                            }
-                                        )
-                                    },
-                                    {
-                                        ExpressiveListItem(
-                                            onClick = { optBackupFinance = !optBackupFinance },
-                                            headlineContent = { Text("Finance", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
-                                            supportingContent = { Text("Export income, expense records, and analytics history", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.AccountBalanceWallet) },
-                                            trailingContent = {
-                                                Checkbox(
-                                                    checked = optBackupFinance,
-                                                    onCheckedChange = { optBackupFinance = it }
-                                                )
-                                            }
-                                        )
-                                    },
-                                    {
-                                        ExpressiveListItem(
-                                            onClick = { optBackupVault = !optBackupVault },
-                                            headlineContent = { Text("Vault", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
-                                            supportingContent = { Text("Export passwords, credentials, and encrypted file vault", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.Lock) },
-                                            trailingContent = {
-                                                Checkbox(
-                                                    checked = optBackupVault,
-                                                    onCheckedChange = { optBackupVault = it }
-                                                )
-                                            }
-                                        )
-                                    },
-                                    {
-                                        ExpressiveListItem(
-                                            onClick = { optBackupNotes = !optBackupNotes },
-                                            headlineContent = { Text("Notes", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
-                                            supportingContent = { Text("Export categorized markdown notes & documentation", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.Description) },
-                                            trailingContent = {
-                                                Checkbox(
-                                                    checked = optBackupNotes,
-                                                    onCheckedChange = { optBackupNotes = it }
-                                                )
-                                            }
-                                        )
-                                    }
+                                OutlinedTextField(
+                                    value = pinInput,
+                                    onValueChange = { pinInput = it; pinError = null },
+                                    label = { Text("Backup Security PIN") },
+                                    singleLine = true,
+                                    isError = pinError != null,
+                                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                        keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
                                 )
-                            )
-
-                            Spacer(Modifier.height(16.dp))
-
+                                if (pinError != null) {
+                                    Text(
+                                        text = pinError!!,
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        },
+                        confirmButton = {
                             Button(
                                 onClick = {
-                                    showBackupOptionsDialog = false
-                                    val sdf = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault())
-                                    val timestamp = sdf.format(java.util.Date())
-                                    val dynamicFileName = "RavenHub_${if (isCloudBackup) "Cloud" else "Local"}_Backup_$timestamp.json"
-                                    createDocLauncher.launch(dynamicFileName)
+                                    val fileToRestore = pendingRestoreFile
+                                    if (fileToRestore != null && fileToRestore.exists()) {
+                                        coroutineScope.launch {
+                                            val isPinValid = com.ravenhub.app.backup.BackupManager.verifyBackupZipPin(context, fileToRestore, pinInput)
+                                            if (isPinValid) {
+                                                val success = com.ravenhub.app.backup.BackupManager.restoreBackupZip(context, fileToRestore)
+                                                fileToRestore.delete()
+                                                pendingRestoreFile = null
+                                                showRestorePinPrompt = false
+                                                if (success) {
+                                                     com.ravenhub.app.data.planner.PlannerDataManager.load(context)
+                                                     com.ravenhub.app.data.notes.NotesDataManager.load(context)
+                                                     com.ravenhub.app.data.vault.VaultDataManager.load(context)
+                                                     com.ravenhub.app.data.finance.FinanceDataManager.load(context)
+                                                    snackbarHostState.showSnackbar("Backup restored successfully!")
+                                                } else {
+                                                    snackbarHostState.showSnackbar("Failed to unpack backup archive.")
+                                                }
+                                            } else {
+                                                pinError = "Incorrect Backup PIN. Restore aborted."
+                                            }
+                                        }
+                                    }
                                 },
-                                enabled = optBackupPlanner || optBackupFinance || optBackupVault || optBackupNotes,
-                                shape = RoundedCornerShape(20.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
-                                    .height(56.dp)
+                                enabled = pinInput.length in 4..8
                             ) {
-                                Icon(if (isCloudBackup) Icons.Rounded.CloudUpload else Icons.Rounded.FileUpload, null)
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    text = if (isCloudBackup) "Export to Cloud Storage" else "Export Local Backup",
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
+                                Text("Verify & Restore")
+                            }
+                        },
+                        dismissButton = {
+                            OutlinedButton(
+                                onClick = {
+                                    showRestorePinPrompt = false
+                                    pendingRestoreFile?.delete()
+                                    pendingRestoreFile = null
+                                }
+                            ) {
+                                Text("Cancel")
                             }
                         }
-                    }
+                    )
                 }
             }
 
@@ -708,135 +611,221 @@ fun SettingsScreen(navController: NavController) {
                         }
                     }
                 }
+            }
 
+            RootAppDialog {
                 if (showBackupRestoreBottomSheet) {
                     com.ravenhub.app.ui.component.CustomBottomSheet(
                         visible = showBackupRestoreBottomSheet,
                         onDismiss = { showBackupRestoreBottomSheet = false }
                     ) {
                         Column(
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp)
                         ) {
                             Text(
                                 text = "Backup & Restore Data",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                             )
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    showBackupRestoreBottomSheet = false
-                                    showBackupModuleModal = true
-                                }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Icon(Icons.Rounded.FileUpload, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text("Backup Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                                        Text("Export encrypted backup archive of modules", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                            ExpressiveList(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                content = listOf(
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = {
+                                                isCloudBackup = false
+                                                showBackupRestoreBottomSheet = false
+                                                showBackupModuleModal = true
+                                            },
+                                            headlineContent = { Text("Backup Local Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export encrypted backup file to local device storage", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.FileUpload) },
+                                            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
+                                        )
+                                    },
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = {
+                                                isCloudBackup = true
+                                                showBackupRestoreBottomSheet = false
+                                                showBackupModuleModal = true
+                                            },
+                                            headlineContent = { Text("Backup to Cloud Storage", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export encrypted backup to Google Drive, OneDrive, or Cloud SAF", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.CloudUpload) },
+                                            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
+                                        )
+                                    },
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = {
+                                                showBackupRestoreBottomSheet = false
+                                                com.ravenhub.app.ui.util.AppLifecycleManager.isLaunchingSystemPicker = true
+                                                restoreFullBackupLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+                                            },
+                                            headlineContent = { Text("Restore Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Import backup archive from Local or Cloud Storage into RavenHub", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.FileDownload) },
+                                            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
+                                        )
                                     }
-                                }
-                            }
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    showBackupRestoreBottomSheet = false
-                                    com.ravenhub.app.ui.util.AppLifecycleManager.isLaunchingSystemPicker = true
-                                    restoreFullBackupLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
-                                }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Icon(Icons.Rounded.FileDownload, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text("Restore Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                                        Text("Import backup archive into RavenHub", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
-                            Spacer(Modifier.height(16.dp))
+                                )
+                            )
                         }
                     }
                 }
+            }
 
+            RootAppDialog {
                 if (showBackupModuleModal) {
                     com.ravenhub.app.ui.component.CustomBottomSheet(
-                        visible = true,
+                        visible = showBackupModuleModal,
                         onDismiss = { showBackupModuleModal = false }
                     ) {
-                        Text(
-                            text = "Select Modules to Backup",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-                        )
-                        Text(
-                            text = "Choose which data categories to include in your encrypted backup:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 24.dp)
-                        )
-                        Spacer(Modifier.height(12.dp))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp)
+                        ) {
+                            Text(
+                                text = if (isCloudBackup) "Select Modules for Cloud Backup" else "Select Modules for Local Backup",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                            )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Planner", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
-                            Checkbox(checked = selPlanner, onCheckedChange = { selPlanner = it })
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Finance", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
-                            Checkbox(checked = selFinance, onCheckedChange = { selFinance = it })
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Vault", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
-                            Checkbox(checked = selVault, onCheckedChange = { selVault = it })
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Notes", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
-                            Checkbox(checked = selNotes, onCheckedChange = { selNotes = it })
-                        }
+                            ExpressiveList(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                content = listOf(
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = { selPlanner = !selPlanner },
+                                            headlineContent = { Text("Planner", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export todos, sub-task checklist trees, and habits", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.Checklist) },
+                                            trailingContent = {
+                                                Checkbox(
+                                                    checked = selPlanner,
+                                                    onCheckedChange = { selPlanner = it }
+                                                )
+                                            }
+                                        )
+                                    },
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = { selFinance = !selFinance },
+                                            headlineContent = { Text("Finance", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export income, expense records, and analytics history", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.AccountBalanceWallet) },
+                                            trailingContent = {
+                                                Checkbox(
+                                                    checked = selFinance,
+                                                    onCheckedChange = { selFinance = it }
+                                                )
+                                            }
+                                        )
+                                    },
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = { selVault = !selVault },
+                                            headlineContent = { Text("Vault", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export passwords, credentials, and encrypted file vault", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.Lock) },
+                                            trailingContent = {
+                                                Checkbox(
+                                                    checked = selVault,
+                                                    onCheckedChange = { selVault = it }
+                                                )
+                                            }
+                                        )
+                                    },
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = { selNotes = !selNotes },
+                                            headlineContent = { Text("Notes", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export categorized markdown notes & documentation", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.Description) },
+                                            trailingContent = {
+                                                Checkbox(
+                                                    checked = selNotes,
+                                                    onCheckedChange = { selNotes = it }
+                                                )
+                                            }
+                                        )
+                                    }
+                                )
+                            )
 
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = {
-                                showBackupModuleModal = false
-                                com.ravenhub.app.ui.util.AppLifecycleManager.isLaunchingSystemPicker = true
-                                createFullBackupLauncher.launch("ravenhub_backup_${System.currentTimeMillis()}.zip")
-                            },
-                            enabled = selPlanner || selFinance || selVault || selNotes,
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(52.dp)
-                        ) {
-                            Text("Choose Export Folder & Save", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(16.dp))
+
+                            Button(
+                                onClick = {
+                                    showBackupModuleModal = false
+                                    if (isCloudBackup) {
+                                        coroutineScope.launch {
+                                            loadingDialog.withLoading {
+                                                val backupFile = com.ravenhub.app.backup.BackupManager.createBackupZip(
+                                                    context, selPlanner, selFinance, selVault, selNotes
+                                                )
+                                                if (backupFile != null && backupFile.exists()) {
+                                                    try {
+                                                        com.ravenhub.app.ui.util.AppLifecycleManager.isLaunchingSystemPicker = true
+                                                        val fileUri = androidx.core.content.FileProvider.getUriForFile(
+                                                            context,
+                                                            "${context.packageName}.provider",
+                                                            backupFile
+                                                        )
+                                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                            type = "application/zip"
+                                                            putExtra(Intent.EXTRA_STREAM, fileUri)
+                                                            putExtra(Intent.EXTRA_SUBJECT, "RavenHub Encrypted Cloud Backup")
+                                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                        }
+                                                        val chooserIntent = Intent.createChooser(shareIntent, "Share / Backup to Cloud Storage")
+                                                        chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                        context.startActivity(chooserIntent)
+                                                    } catch (e: Exception) {
+                                                        e.printStackTrace()
+                                                        snackbarHostState.showSnackbar("Failed to launch cloud share: ${e.message}")
+                                                    }
+                                                } else {
+                                                    snackbarHostState.showSnackbar("Failed to create backup zip.")
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        com.ravenhub.app.ui.util.AppLifecycleManager.isLaunchingSystemPicker = true
+                                        createFullBackupLauncher.launch("ravenhub_local_backup_${System.currentTimeMillis()}.zip")
+                                    }
+                                },
+                                enabled = selPlanner || selFinance || selVault || selNotes,
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                                    .height(56.dp)
+                            ) {
+                                Icon(if (isCloudBackup) Icons.Rounded.CloudUpload else Icons.Rounded.FileUpload, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = if (isCloudBackup) "Export & Share to Cloud App" else "Save to Local Storage",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
                         }
-                        Spacer(Modifier.height(24.dp))
                     }
                 }
             }

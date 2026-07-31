@@ -22,6 +22,11 @@ object MasterKeyManager {
         return prefs.contains(PREF_PIN_VERIFIER)
     }
 
+    fun getSavedPin(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getString(PREF_SAVED_PIN, null)
+    }
+
     @Synchronized
     fun getOrCreateMasterKey(context: Context, pin: String): ByteArray {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
