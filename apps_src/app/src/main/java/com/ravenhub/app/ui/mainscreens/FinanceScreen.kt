@@ -259,8 +259,7 @@ fun FinanceScreen(viewModel: FinanceViewModel = viewModel()) {
                             }
                         )
                     }
-
-                    Spacer(Modifier.height(110.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             } else {
                 // --- TAB 1: HISTORY & ANALYTICS ---

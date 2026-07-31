@@ -92,6 +92,7 @@ fun SettingsScreen(navController: NavController) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val context = LocalContext.current
     val listState = rememberLazyListState()
+    val uriHandler = LocalUriHandler.current
     
     var showBackupRestoreSheet by remember { mutableStateOf(false) }
     var showBackupOptionsDialog by remember { mutableStateOf(false) }
@@ -251,7 +252,7 @@ fun SettingsScreen(navController: NavController) {
                                 {
                                     ExpressiveListItem(
                                         onClick = { navController.navigate("color_palette") },
-                                        headlineContent = { Text("Color Palette & Accent") },
+                                        headlineContent = { Text("Theme") },
                                         supportingContent = { Text("Customize dynamic accent colors and dark mode") },
                                         leadingContent = { LeadingIcon(icon = Icons.Filled.Palette) },
                                         trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
@@ -365,7 +366,7 @@ fun SettingsScreen(navController: NavController) {
                         ExpressiveList(
                             content = listOf {
                                 ExpressiveListItem(
-                                    onClick = { navController.navigate("aboutscreen") }, 
+                                    onClick = { uriHandler.openUri("https://github.com/xzhrael/Ravenhub") }, 
                                     headlineContent = { Text("About RavenHub") },
                                     supportingContent = {
                                         Text("Version ${BuildConfig.VERSION_NAME}")
@@ -375,9 +376,6 @@ fun SettingsScreen(navController: NavController) {
                                 )
                             }
                         )
-                    }
-                    item {
-                        Spacer(Modifier.height(80.dp))
                     }
                 }
             }
@@ -464,56 +462,60 @@ fun SettingsScreen(navController: NavController) {
                         onDismiss = { showBackupRestoreSheet = false }
                     ) {
                         Column(
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp)
                         ) {
                             Text(
                                 text = "Backup & Restore Data",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                             )
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    showBackupRestoreSheet = false
-                                    showBackupOptionsDialog = true
-                                }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Icon(Icons.Rounded.FileUpload, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text("Backup Local Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                                        Text("Export encrypted backup file to device", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                            ExpressiveList(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                content = listOf(
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = {
+                                                showBackupRestoreSheet = false
+                                                showBackupOptionsDialog = true
+                                            },
+                                            headlineContent = { Text("Backup Local Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export encrypted backup file to local device storage", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.FileUpload) },
+                                            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
+                                        )
+                                    },
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = {
+                                                showBackupRestoreSheet = false
+                                                showBackupOptionsDialog = true
+                                            },
+                                            headlineContent = { Text("Backup to Cloud Storage", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export encrypted backup to Google Drive, OneDrive, or Cloud SAF", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.CloudUpload) },
+                                            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
+                                        )
+                                    },
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = {
+                                                showBackupRestoreSheet = false
+                                                openDocLauncher.launch(arrayOf("application/json", "application/octet-stream", "*/*"))
+                                            },
+                                            headlineContent = { Text("Restore Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Import backup file from Local or Cloud Storage into RavenHub", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.FileDownload) },
+                                            trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
+                                        )
                                     }
-                                }
-                            }
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                modifier = Modifier.fillMaxWidth().clickable {
-                                    showBackupRestoreSheet = false
-                                    openDocLauncher.launch(arrayOf("application/octet-stream", "*/*"))
-                                }
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Icon(Icons.Rounded.FileDownload, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text("Restore Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                                        Text("Import backup file into RavenHub", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                }
-                            }
-                            Spacer(Modifier.height(16.dp))
+                                )
+                            )
                         }
                     }
                 }

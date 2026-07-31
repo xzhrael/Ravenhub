@@ -8,7 +8,7 @@
   <a href="https://github.com/xzhrael/RavenHub">
   <img src="https://img.shields.io/badge/Status-Stable-green?style=for-the-badge" alt="Status">
   </a>
-  <img src="https://img.shields.io/badge/Version-v1.0-blue?style=for-the-badge" alt="Version">
+  <img src="https://img.shields.io/badge/Version-v1.1-blue?style=for-the-badge" alt="Version">
   <img src="https://img.shields.io/badge/License-Apache%202.0-orange?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Android-8.0+-blue?style=for-the-badge&logo=android" alt="Android Version">
   <img src="https://img.shields.io/badge/Platform-Pure%20Non--Root%20%7C%20Universal-purple?style=for-the-badge" alt="Platform">

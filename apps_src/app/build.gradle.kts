@@ -17,8 +17,8 @@ android {
     compileSdk = 37
 
     val moduleProp = file("../../module.prop")
-    var mVersionCode = 1
-    var mVersionName = "1.0"
+    var mVersionCode = 2
+    var mVersionName = "1.1"
     if (moduleProp.exists()) {
         moduleProp.readLines().forEach { line ->
             if (line.startsWith("versionCode=")) {

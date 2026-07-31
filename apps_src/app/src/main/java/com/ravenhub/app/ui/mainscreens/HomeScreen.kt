@@ -259,7 +259,7 @@ fun HomeScreen(navController: NavController) {
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    IconButton(onClick = { uriHandler.openUri("https://github.com/xzhrael/Ravencore") }) {
+                                    IconButton(onClick = { uriHandler.openUri("https://github.com/xzhrael") }) {
                                         Icon(
                                             painter = painterResource(id = R.drawable.ic_github),
                                             contentDescription = "GitHub",
