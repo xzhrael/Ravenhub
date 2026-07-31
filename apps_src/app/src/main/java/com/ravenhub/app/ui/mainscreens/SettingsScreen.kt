@@ -102,13 +102,6 @@ fun SettingsScreen(navController: NavController) {
 
     var showRestoreDialog by remember { mutableStateOf(false) }
     var showChangePinDialog by remember { mutableStateOf(false) }
-    
-    val restartToastText = stringResource(R.string.toast_restarting_service)
-    
-    
-    var isLauncherVisible by rememberSaveable { 
-        mutableStateOf(isLauncherIconEnabled(context)) 
-    }
     var showChangelogSheet by remember { mutableStateOf(false) }
     var showAutoLockSheet by remember { mutableStateOf(false) }
     var changelogText by remember { mutableStateOf("") }
@@ -119,7 +112,7 @@ fun SettingsScreen(navController: NavController) {
             try {
                 changelogText = context.assets.open("changelog.md").bufferedReader().use { it.readText() }
             } catch (e: Exception) {
-                changelogText = context.getString(R.string.err_failed_load_changelog) + "\n${e.message}"
+                changelogText = "Failed to load changelog\n${e.message}"
             }
         }
     }
@@ -258,8 +251,8 @@ fun SettingsScreen(navController: NavController) {
                                 {
                                     ExpressiveListItem(
                                         onClick = { navController.navigate("color_palette") },
-                                        headlineContent = { Text(stringResource(R.string.theme)) },
-                                        supportingContent = { Text(stringResource(R.string.theme_desc)) },
+                                        headlineContent = { Text("Color Palette & Accent") },
+                                        supportingContent = { Text("Customize dynamic accent colors and dark mode") },
                                         leadingContent = { LeadingIcon(icon = Icons.Filled.Palette) },
                                         trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
                                     )
@@ -268,7 +261,7 @@ fun SettingsScreen(navController: NavController) {
                                     ExpressiveListItem(
                                         leadingContent = { LeadingIcon(icon = Icons.Outlined.SettingsBackupRestore) },
                                         onClick = { showBackupRestoreBottomSheet = true },
-                                        headlineContent = { Text(stringResource(R.string.str_backup_restore)) },
+                                        headlineContent = { Text("Backup & Restore") },
                                         supportingContent = { Text("Backup or restore encrypted RavenHub app data") },
                                         trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
                                     )
@@ -367,7 +360,7 @@ fun SettingsScreen(navController: NavController) {
                         )
                     }
 
-                    item { SettingsSectionTitle(stringResource(R.string.section_about)) }
+                    item { SettingsSectionTitle("About") }
                     item {
                         ExpressiveList(
                             content = listOf {
@@ -375,7 +368,7 @@ fun SettingsScreen(navController: NavController) {
                                     onClick = { navController.navigate("aboutscreen") }, 
                                     headlineContent = { Text("About RavenHub") },
                                     supportingContent = {
-                                        Text(stringResource(R.string.version_format, BuildConfig.VERSION_NAME))
+                                        Text("Version ${BuildConfig.VERSION_NAME}")
                                     },
                                     leadingContent = { LeadingIcon(icon = Icons.Filled.ContactPage) },
                                     trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
@@ -530,7 +523,7 @@ fun SettingsScreen(navController: NavController) {
                 CustomContentDialog(
                     visible = showBackupOptionsDialog,
                     title = "Select Modules to Backup",
-                    confirmText = context.getString(R.string.dialog_backup_options_confirm),
+                    confirmText = "Export Backup",
                     confirmEnabled = optBackupPlanner || optBackupFinance || optBackupVault || optBackupNotes,
                     onDismiss = { showBackupOptionsDialog = false },
                     onConfirm = {
@@ -577,7 +570,7 @@ fun SettingsScreen(navController: NavController) {
                 CustomContentDialog(
                     visible = showRestoreDialog,
                     title = "Restore Backup Data",
-                    confirmText = context.getString(R.string.dialog_restore_confirm),
+                    confirmText = "Restore Data",
                     confirmEnabled = true,
                     onDismiss = { showRestoreDialog = false },
                     onConfirm = {
@@ -606,7 +599,7 @@ fun SettingsScreen(navController: NavController) {
                             .fillMaxHeight(0.85f) 
                     ) {
                         Text(
-                            text = stringResource(R.string.str_changelog),
+                            text = "Changelog",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -835,7 +828,7 @@ fun SettingsScreenTopAppBar(
             },
             title = {
                 Text(
-                    text = stringResource(R.string.settings),
+                    text = "Settings",
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -843,7 +836,7 @@ fun SettingsScreenTopAppBar(
                 IconButton(onClick = onChangelogClick) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.TextSnippet,
-                        contentDescription = stringResource(R.string.cd_changelog)
+                        contentDescription = "Changelog"
                     )
                 }
             },

@@ -268,199 +268,19 @@ fun HomeTopAppBar(scrollBehavior: TopAppBarScrollBehavior, onRebootClick: () -> 
             .statusBarsPadding()
     ) {
         LargeFlexibleTopAppBar(
-            title = { Text(text = stringResource(R.string.app_name), fontWeight = FontWeight.Bold) },
+            title = { Text(text = "RavenHub", fontWeight = FontWeight.Bold) },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
             ),
             actions = {
                 IconButton(onClick = onRebootClick) {
-                    Icon(imageVector = Icons.Filled.PowerSettingsNew, contentDescription = stringResource(R.string.reboot))
+                    Icon(imageVector = Icons.Filled.PowerSettingsNew, contentDescription = "Reboot")
                 }
             },
             scrollBehavior = scrollBehavior,
             windowInsets = WindowInsets(0, 0, 0, 0)
         )
-    }
-}
-
-@Composable
-fun BannerCard(
-    status: String,
-    pid: String,
-    isBannerEnabled: Boolean,
-    isBlurEnabled: Boolean = false,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    val context = LocalContext.current
-    val colorScheme = MaterialTheme.colorScheme
-    val customBannerUri = remember { context.getHeaderImage() }
-    val gradientAlpha = context.getBannerGradientAlpha()
-    val isAlive = status == stringResource(R.string.status_alive)
-    
-    val globalHazeState = LocalAppHazeState.current
-    val bannerHazeState = globalHazeState ?: remember { HazeState() }
-
-    val statusBgColor = if (isAlive) {
-        if (isBlurEnabled) colorScheme.secondaryContainer.copy(alpha = 0.45f) else colorScheme.secondaryContainer
-    } else {
-        if (isBlurEnabled) colorScheme.errorContainer.copy(alpha = 0.45f) else colorScheme.errorContainer
-    }
-
-    val statusTextColor = if (isAlive) colorScheme.onSecondaryContainer else colorScheme.onErrorContainer
-
-    if (isBannerEnabled) {
-        Card(
-            onClick = onClick,
-            modifier = modifier,
-            shape = RoundedCornerShape(26.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(if (isBlurEnabled) Modifier.hazeSource(state = bannerHazeState) else Modifier)
-                ) {
-                    MediaBannerRenderer(
-                        uriString = customBannerUri,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                
-                    Box(
-                        modifier = Modifier.fillMaxSize().background(
-                            Brush.verticalGradient(
-                                listOf(Color.Transparent, colorScheme.surfaceContainerLow.copy(alpha = gradientAlpha))
-                            )
-                        )
-                    )
-                }
-
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(end = 24.dp, bottom = 20.dp)
-                        .animateContentSize(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessLow)), 
-                    horizontalAlignment = Alignment.End
-                ) {
-                    val isRooted = status.contains("Root", ignoreCase = true) && !status.contains("Non-Root", ignoreCase = true)
-                    Surface(
-                        color = if (isBlurEnabled) colorScheme.surfaceContainerHigh.copy(alpha = 0.65f) else colorScheme.surfaceContainerHigh,
-                        shape = CircleShape,
-                        shadowElevation = if (isBlurEnabled) 0.dp else 4.dp,
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .then(if (isBlurEnabled) Modifier.hazeEffect(state = bannerHazeState) { blurEffect { blurRadius = 24.dp } } else Modifier)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isRooted) Color(0xFF4CAF50) else Color(0xFFFF9800))
-                            )
-                            Text(
-                                text = if (isRooted) "Root" else "Non-Root",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-
-
-                    if (isAlive) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Surface(
-                            color = if (isBlurEnabled) colorScheme.secondaryContainer.copy(alpha = 0.45f) else colorScheme.secondaryContainer, 
-                            shape = CircleShape,
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .then(if (isBlurEnabled) Modifier.hazeEffect(state = bannerHazeState) { blurEffect { blurRadius = 14.dp } } else Modifier)
-                        ) {
-                            AnimatedContent(
-                                targetState = pid,
-                                transitionSpec = {
-                                    fadeIn(animationSpec = tween(200)) togetherWith fadeOut(animationSpec = tween(200))
-                                },
-                                label = "BannerPidAnim"
-                            ) { targetPid ->
-                                Text(
-                                    text = stringResource(R.string.pid_format, targetPid),
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold, 
-                                    color = colorScheme.onSecondaryContainer
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    } else {
-
-        Surface(
-            modifier = modifier
-                .clip(RoundedCornerShape(26.dp))
-                .clickable { onClick() }
-                .animateContentSize(animationSpec = spring()), 
-            color = colorScheme.secondaryContainer, 
-            shape = RoundedCornerShape(26.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
-                verticalAlignment = Alignment.CenterVertically, 
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                AnimatedContent(
-                    targetState = isAlive,
-                    transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
-                    label = "BannerIconAnim"
-                ) { alive ->
-                    Icon(
-                        imageVector = if (alive) Icons.Outlined.CheckCircle else Icons.Rounded.ErrorOutline,
-                        contentDescription = null, 
-                        tint = colorScheme.onSecondaryContainer, 
-                        modifier = Modifier.size(42.dp)
-                    )
-                }
-                
-                Box(modifier = Modifier.height(42.dp).width(1.5.dp).background(colorScheme.onSecondaryContainer.copy(alpha = 0.3f)))
-                
-                Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.Start) {
-                    AnimatedContent(
-                        targetState = status,
-                        transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
-                        label = "BannerStatusAnimNoImage"
-                    ) { targetStatus ->
-                        Text(text = targetStatus, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = colorScheme.onSecondaryContainer)
-                    }
-
-                    if (isAlive) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        AnimatedContent(
-                            targetState = pid,
-                            transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
-                            label = "BannerPidAnimNoImage"
-                        ) { targetPid ->
-                            Text(
-                                text = stringResource(R.string.pid_format, targetPid),
-                                style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium,
-                                color = colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -628,7 +448,7 @@ fun DeviceInfoCard() {
                 SmallLeadingIcon(Icons.Outlined.Info)
                 Spacer(Modifier.width(12.dp))
                 Text(
-                    text = stringResource(R.string.device_info), 
+                    text = "Device Info", 
                     modifier = Modifier.weight(1f), 
                     style = MaterialTheme.typography.titleMedium, 
                     fontWeight = FontWeight.SemiBold
@@ -650,7 +470,7 @@ fun DeviceInfoCard() {
                 ) {
                     DeviceInfoGridItem(
                         modifier = Modifier.fillMaxWidth(),
-                        title = stringResource(R.string.device_name), 
+                        title = "Device Name", 
                         value = realDeviceName
                     )
 
@@ -660,12 +480,12 @@ fun DeviceInfoCard() {
                     ) {
                         DeviceInfoGridItem(
                             modifier = Modifier.weight(1f),
-                            title = stringResource(R.string.kernel_version), 
+                            title = "Kernel Version", 
                             value = kernelVer
                         )
                         DeviceInfoGridItem(
                             modifier = Modifier.weight(1f),
-                            title = stringResource(R.string.str_chipset), 
+                            title = "Chipset", 
                             value = chipsetName
                         )
                     }
@@ -676,7 +496,7 @@ fun DeviceInfoCard() {
                     ) {
                         DeviceInfoGridItem(
                             modifier = Modifier.weight(1f),
-                            title = stringResource(R.string.selinux_status), 
+                            title = "SELinux Status", 
                             value = selinux
                         )
                         DeviceInfoGridItem(
@@ -792,78 +612,10 @@ fun LinkCard(icon: ImageVector, titleRes: Int, descRes: Int, onClick: () -> Unit
 
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
-                contentDescription = stringResource(R.string.cd_open_link),
+                contentDescription = "Open",
                 modifier = Modifier.size(22.dp),
                 tint = colorScheme.onSurfaceVariant
             )
         }
     }
 }
-
-@Composable
-fun RebootBottomSheet(
-    show: Boolean,
-    onDismiss: () -> Unit,
-    onReboot: (String) -> Unit
-) {
-
-    val context = LocalContext.current
-    val pm = context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager?
-    
-    @Suppress("DEPRECATION")
-    val isUserspaceSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && pm?.isRebootingUserspaceSupported == true
-
-    val options = buildList<Triple<String, String, ImageVector>> {
-        add(Triple(stringResource(R.string.reboot), "", Icons.Outlined.Refresh))
-        if (isUserspaceSupported) add(Triple(stringResource(R.string.reboot_userspace), "userspace", Icons.Outlined.RestartAlt))
-        add(Triple(stringResource(R.string.reboot_soft), "soft_reboot", Icons.Outlined.Refresh))
-        add(Triple(stringResource(R.string.reboot_recovery), "recovery", Icons.Outlined.SystemUpdate))
-        add(Triple(stringResource(R.string.reboot_bootloader), "bootloader", Icons.Outlined.Memory))
-        add(Triple(stringResource(R.string.reboot_download), "download", Icons.Outlined.Download))
-        add(Triple(stringResource(R.string.reboot_edl), "edl", Icons.Outlined.DeveloperMode))
-    }
-
-
-    CustomBottomSheet(
-        visible = show,
-        onDismiss = onDismiss
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.reboot),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-
-                modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp)
-            )
-
-
-            ExpressiveList(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                content = options.map { (label, reason, icon) ->
-                    {
-                        ExpressiveListItem(
-
-                            headlineContent = { 
-                                Text(text = label, color = MaterialTheme.colorScheme.onSurface) 
-                            },
-                            leadingContent = { SmallLeadingIcon(icon) },
-                            onClick = {
-                                onDismiss()
-                                onReboot(reason)
-                            }
-                        )
-                    }
-                }
-            )
-        }
-    }
-}
-
-

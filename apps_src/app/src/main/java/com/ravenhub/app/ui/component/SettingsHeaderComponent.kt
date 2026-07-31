@@ -140,13 +140,12 @@ fun AppInfoHeaderContent(modifier: Modifier = Modifier) {
                 .padding(vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            AppInfoTextItem(title = stringResource(R.string.app_name_settings), value = context.getString(R.string.app_name))
-            AppInfoTextItem(title = stringResource(R.string.str_author), value = "Luca Azhrael")
-            AppInfoTextItem(title = stringResource(R.string.str_build_date), value = buildDateString)
-            AppInfoTextItem(title = stringResource(R.string.str_version_code), value = BuildConfig.VERSION_CODE.toString())
-            AppInfoTextItem(title = stringResource(R.string.str_package_name), value = context.packageName)
-
-            AppInfoTextItem(title = stringResource(R.string.str_device_uptime), value = uptimeString)
+            AppInfoTextItem(title = "App Name", value = "RavenHub")
+            AppInfoTextItem(title = "Author", value = "Luca Azhrael")
+            AppInfoTextItem(title = "Build Date", value = buildDateString)
+            AppInfoTextItem(title = "Version Code", value = BuildConfig.VERSION_CODE.toString())
+            AppInfoTextItem(title = "Package Name", value = context.packageName)
+            AppInfoTextItem(title = "Uptime", value = uptimeString)
         }
     }
 }

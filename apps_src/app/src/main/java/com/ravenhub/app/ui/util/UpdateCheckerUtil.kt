@@ -17,8 +17,6 @@
 package com.ravenhub.app.ui.util
 
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import com.ravenhub.app.BuildConfig
@@ -27,6 +25,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.regex.Pattern
 
 data class UpdateResult(
     val isUpdateAvailable: Boolean = false,
@@ -41,17 +40,6 @@ object UpdateCheckerUtil {
     private val _updateState = mutableStateOf(UpdateResult())
     val updateState: State<UpdateResult> = _updateState
 
-    fun isInternetConnected(context: Context): Boolean {
-        return try {
-            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
-            val network = cm.activeNetwork ?: return true
-            val capabilities = cm.getNetworkCapabilities(network) ?: return true
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-        } catch (_: Exception) {
-            true
-        }
-    }
-
     suspend fun checkUpdate(context: Context, force: Boolean = false) {
         if (_updateState.value.isChecking) return
         if (!force && _updateState.value.isUpdateAvailable) return
@@ -60,39 +48,77 @@ object UpdateCheckerUtil {
 
         withContext(Dispatchers.IO) {
             try {
-                val url = URL("https://api.github.com/repos/xzhrael/Ravenhub/releases/latest")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "GET"
-                conn.connectTimeout = 6000
-                conn.readTimeout = 6000
-                conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
-                conn.setRequestProperty("User-Agent", "RavenHub-App")
+                var rawTag = ""
+                var htmlUrl = "https://github.com/xzhrael/Ravenhub/releases"
+                var notes = ""
 
-                if (conn.responseCode == 200) {
-                    val body = conn.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(body)
-                    val rawTag = json.optString("tag_name", "").trim()
-                    val tagName = rawTag.removePrefix("v").removePrefix("V")
-                    val htmlUrl = json.optString("html_url", "https://github.com/xzhrael/Ravenhub/releases")
-                    val notes = json.optString("body", "")
+                // Strategy 1: GitHub REST API
+                var apiSuccess = false
+                try {
+                    val url = URL("https://api.github.com/repos/xzhrael/Ravenhub/releases/latest")
+                    val conn = url.openConnection() as HttpURLConnection
+                    conn.requestMethod = "GET"
+                    conn.connectTimeout = 8000
+                    conn.readTimeout = 8000
+                    conn.setRequestProperty("Accept", "application/vnd.github.v3+json")
+                    conn.setRequestProperty("User-Agent", "RavenHub-App")
 
-                    val currentVersion = BuildConfig.VERSION_NAME.removePrefix("v").removePrefix("V")
-                    val hasNewVersion = isVersionGreater(tagName, currentVersion)
+                    if (conn.responseCode == 200) {
+                        val body = conn.inputStream.bufferedReader().use { it.readText() }
+                        val json = JSONObject(body)
+                        rawTag = json.optString("tag_name", "").trim()
+                        htmlUrl = json.optString("html_url", "https://github.com/xzhrael/Ravenhub/releases")
+                        notes = json.optString("body", "")
+                        apiSuccess = true
+                    }
+                } catch (_: Exception) {
+                    apiSuccess = false
+                }
 
-                    _updateState.value = UpdateResult(
-                        isUpdateAvailable = hasNewVersion,
-                        latestVersion = if (rawTag.isNotBlank()) rawTag else "v$tagName",
-                        downloadUrl = htmlUrl,
-                        releaseNotes = notes,
-                        isChecking = false,
-                        errorMessage = null
-                    )
-                } else {
+                // Strategy 2: Web HTML Redirect Fallback (Rate-limit bypass)
+                if (!apiSuccess || rawTag.isBlank()) {
+                    val url = URL("https://github.com/xzhrael/Ravenhub/releases/latest")
+                    val conn = url.openConnection() as HttpURLConnection
+                    conn.instanceFollowRedirects = true
+                    conn.connectTimeout = 8000
+                    conn.readTimeout = 8000
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile)")
+
+                    val finalUrl = conn.url.toString()
+                    val matcher = Pattern.compile("/releases/tag/([^/]+)").matcher(finalUrl)
+                    if (matcher.find()) {
+                        rawTag = matcher.group(1) ?: ""
+                        htmlUrl = finalUrl
+                    } else {
+                        val body = conn.inputStream.bufferedReader().use { it.readText() }
+                        val bodyMatcher = Pattern.compile("/releases/tag/([^\"'?]+)").matcher(body)
+                        if (bodyMatcher.find()) {
+                            rawTag = bodyMatcher.group(1) ?: ""
+                            htmlUrl = "https://github.com/xzhrael/Ravenhub/releases/tag/$rawTag"
+                        }
+                    }
+                }
+
+                if (rawTag.isBlank()) {
                     _updateState.value = _updateState.value.copy(
                         isChecking = false,
-                        errorMessage = "Server returned ${conn.responseCode}"
+                        errorMessage = "Could not fetch release tag"
                     )
+                    return@withContext
                 }
+
+                val cleanLatest = rawTag.removePrefix("v").removePrefix("V")
+                val cleanCurrent = BuildConfig.VERSION_NAME.removePrefix("v").removePrefix("V")
+                val hasNewVersion = isVersionGreater(cleanLatest, cleanCurrent)
+
+                _updateState.value = UpdateResult(
+                    isUpdateAvailable = hasNewVersion,
+                    latestVersion = if (rawTag.startsWith("v", ignoreCase = true)) rawTag else "v$rawTag",
+                    downloadUrl = htmlUrl,
+                    releaseNotes = notes,
+                    isChecking = false,
+                    errorMessage = null
+                )
             } catch (e: Exception) {
                 _updateState.value = _updateState.value.copy(
                     isChecking = false,

@@ -150,7 +150,7 @@ fun ColorPaletteScreen(navController: NavController) {
                 context.saveHeaderImage(uriString)
                 customBannerUri = uriString
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar(context.getString(R.string.str_banner_updated))
+                    snackbarHostState.showSnackbar("Banner image updated!")
                 }
             }
         } else {
@@ -189,7 +189,7 @@ fun ColorPaletteScreen(navController: NavController) {
             val maxSize = 50 * 1024 * 1024L
             if (sizeBytes > maxSize) {
                 coroutineScope.launch {
-                    snackbarHostState.showSnackbar(context.getString(R.string.str_max_video_size))
+                    snackbarHostState.showSnackbar("Maximum video size is 50MB")
                 }
                 return@let
             }
@@ -210,7 +210,7 @@ fun ColorPaletteScreen(navController: NavController) {
     
                 if (durationMs > 30000L) {
                     coroutineScope.launch {
-                        snackbarHostState.showSnackbar(context.getString(R.string.str_video_too_long))
+                        snackbarHostState.showSnackbar("Video duration must be 30s or less")
                     }
                     return@let
                 }
@@ -226,9 +226,9 @@ fun ColorPaletteScreen(navController: NavController) {
                     if (savedUriString != null) {
                         context.saveHeaderImage(savedUriString)
                         customBannerUri = savedUriString
-                        snackbarHostState.showSnackbar(context.getString(R.string.str_pick_media_success))
+                        snackbarHostState.showSnackbar("Media banner saved successfully!")
                     } else {
-                        snackbarHostState.showSnackbar(context.getString(R.string.str_pick_media_fail))
+                        snackbarHostState.showSnackbar("Failed to save media banner")
                     }
                 }
             } else {
@@ -464,7 +464,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
     item {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                stringResource(R.string.accent_color),
+                "Accent Color",
                 modifier = Modifier.padding(horizontal = 28.dp),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
@@ -524,7 +524,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                stringResource(R.string.appearance),
+                "Appearance",
                 modifier = Modifier.padding(horizontal = 12.dp),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
@@ -578,7 +578,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                stringResource(R.string.banner),
+                "Hero Banner Customization",
                 modifier = Modifier.padding(horizontal = 12.dp),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
