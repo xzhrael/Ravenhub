@@ -49,8 +49,6 @@ import com.ravenhub.app.ui.mainscreens.*
 import com.ravenhub.app.ui.security.LockMode
 import com.ravenhub.app.ui.security.LockScreen
 import com.ravenhub.app.ui.subscreens.ColorPaletteScreen
-import com.ravenhub.app.ui.subscreens.DevShellScreen
-import com.ravenhub.app.ui.subscreens.LanguageScreen
 import com.ravenhub.app.ui.theme.RavenHubTheme
 import com.ravenhub.app.ui.util.AppLifecycleManager
 
@@ -135,7 +133,6 @@ fun MainAppContent(
     var isUnlocked by remember { mutableStateOf(MasterKeyManager.isUnlocked()) }
     var isPinSet by remember { mutableStateOf(MasterKeyManager.isPinSetup(context)) }
     val hasCompletedGetStarted by remember { mutableStateOf(appPrefs.getBoolean("has_completed_get_started", false)) }
-    var isLanguageSearching by remember { mutableStateOf(false) }
 
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -285,14 +282,12 @@ fun MainAppContent(
                     composable("vault") { VaultScreen() }
                     composable("finance") { FinanceScreen() }
                     composable("settings") { SettingsScreen(navController) }
-                    composable("language") { LanguageScreen(navController, isSearching = isLanguageSearching, onSearchingChange = { isLanguageSearching = it }) }
-                    composable("devshell") { DevShellScreen(navController) }
                     composable("color_palette") { ColorPaletteScreen(navController) }
                 }
 
                 // Unified Top Floating Pill Bar Across All Screens
                 AnimatedVisibility(
-                    visible = currentRoute in setOf("home", "planner", "notes", "vault", "finance", "settings", "language", "devshell", "color_palette"),
+                    visible = currentRoute in setOf("home", "planner", "notes", "vault", "finance", "settings", "color_palette"),
                     enter = slideInVertically(
                         initialOffsetY = { -it },
                         animationSpec = tween(400, easing = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1.0f))
@@ -313,9 +308,7 @@ fun MainAppContent(
                         hazeState = hazeState,
                         onBackClick = { navController.popBackStack() },
                         onRightPillClick = {
-                            if (currentRoute == "language") {
-                                isLanguageSearching = !isLanguageSearching
-                            } else if (currentRoute != "settings") {
+                            if (currentRoute != "settings") {
                                 navController.navigate("settings")
                             }
                         }

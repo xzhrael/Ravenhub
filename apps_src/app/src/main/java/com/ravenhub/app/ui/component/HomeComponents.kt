@@ -90,12 +90,10 @@ import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import com.ravenhub.app.R
-import com.ravenhub.app.ui.util.getAppVersion
 import com.ravenhub.app.ui.util.getBannerGradientAlpha
 import com.ravenhub.app.ui.util.getChipsetName
 import com.ravenhub.app.ui.util.getHeaderImage
 import com.ravenhub.app.ui.util.getRealDeviceName
-import com.ravenhub.app.ui.util.getSELinuxStatus
 
 
 @Composable
@@ -584,8 +582,13 @@ fun DeviceInfoCard() {
     
     val uname = remember { Os.uname() }
     val kernelVer = remember { uname.release }
-    val selinux = remember { getSELinuxStatus(context) }
-    val appVer = remember { getAppVersion(context) }
+    val selinux = remember {
+        try {
+            val p = java.lang.Runtime.getRuntime().exec("getenforce")
+            p.inputStream.bufferedReader().use { it.readText().trim() }
+        } catch (_: Exception) { "Enforcing" }
+    }
+    val appVer = remember { com.ravenhub.app.BuildConfig.VERSION_NAME }
     val chipsetName = remember { getChipsetName(context) }
 
     var realDeviceName by remember { mutableStateOf("${Build.MANUFACTURER} ${Build.MODEL}") }
@@ -678,7 +681,7 @@ fun DeviceInfoCard() {
                         )
                         DeviceInfoGridItem(
                             modifier = Modifier.weight(1f),
-                            title = stringResource(R.string.ravencore_version), 
+                            title = "App Version", 
                             value = appVer
                         )
                     }
@@ -863,189 +866,4 @@ fun RebootBottomSheet(
     }
 }
 
-@Composable
-fun RunningGameCard(
-    pkgName: String,
-    startTimeStr: String,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val pm = context.packageManager
-    val density = LocalDensity.current
-    
 
-    val isNoApp = pkgName == "(null)" || pkgName.equals("null", ignoreCase = true) || pkgName.isEmpty()
-    
-
-    val appInfo = remember(pkgName, isNoApp) {
-        if (isNoApp) null else try { pm.getApplicationInfo(pkgName, 0) } catch (e: Exception) { null }
-    }
-    val appName = remember(appInfo, isNoApp) {
-        if (isNoApp) context.getString(R.string.str_performance_profile) else appInfo?.loadLabel(pm)?.toString() ?: pkgName
-    }
-
-
-    var appIconBitmap by remember(pkgName) { 
-        mutableStateOf(if (isNoApp) null else AppIconCache.get(pkgName)) 
-    }
-    
-    val targetSizePx = remember(density) { 
-        with(density) { 54.dp.roundToPx() } 
-    }
-
-    LaunchedEffect(pkgName, isNoApp) {
-        if (!isNoApp && appIconBitmap == null && appInfo != null) {
-            try {
-                appIconBitmap = AppIconCache.loadIcon(pm, appInfo, targetSizePx)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-
-    var elapsedTime by remember { mutableStateOf("00:00:00") }
-    
-    LaunchedEffect(startTimeStr) {
-        val sdf = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
-        val startParsed = try { sdf.parse(startTimeStr) } catch(e: Exception) { null }
-        
-        if (startParsed != null) {
-            while (true) {
-                val now = java.util.Calendar.getInstance()
-                val start = java.util.Calendar.getInstance().apply {
-                    time = startParsed
-                    set(java.util.Calendar.YEAR, now.get(java.util.Calendar.YEAR))
-                    set(java.util.Calendar.MONTH, now.get(java.util.Calendar.MONTH))
-                    set(java.util.Calendar.DAY_OF_MONTH, now.get(java.util.Calendar.DAY_OF_MONTH))
-                }
-                
-                var diff = now.timeInMillis - start.timeInMillis
-                if (diff < 0) diff += 24 * 60 * 60 * 1000
-                
-                val h = diff / 3600000
-                val m = (diff / 60000) % 60
-                val s = (diff / 1000) % 60
-                
-                elapsedTime = String.format("%02d:%02d:%02d", h, m, s)
-                kotlinx.coroutines.delay(1000)
-            }
-        } else {
-            elapsedTime = "--:--:--"
-        }
-    }
-
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(26.dp))
-            .then(
-
-                if (!isNoApp) {
-                    Modifier.clickable {
-                        val intent = pm.getLaunchIntentForPackage(pkgName)
-                        if (intent != null) {
-                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(intent)
-                        }
-                    }
-                } else Modifier
-            ),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        shape = RoundedCornerShape(26.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            
-            Box(
-                modifier = Modifier.size(64.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (!isNoApp) {
-
-                    CircularWavyProgressIndicator(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    
-
-                    Crossfade(
-                        targetState = appIconBitmap,
-                        animationSpec = tween(durationMillis = 200),
-                        label = "GameIconFade"
-                    ) { icon ->
-                        if (icon == null) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f))
-                            )
-                        } else {
-                            Image(
-                                bitmap = icon,
-                                contentDescription = appName,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                            )
-                        }
-                    }
-                } else {
-                    ContainedLoadingIndicator()
-                    
-                }
-            }
-            
-            Spacer(Modifier.width(12.dp))
-            
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = appName,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Rounded.Timer,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = stringResource(R.string.str_elapsed_time_elapsedtime, elapsedTime),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
-                    )
-                }
-            }
-            
-
-            if (!isNoApp) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.1f),
-                    modifier = Modifier.size(42.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Rounded.PlayArrow,
-                            contentDescription = stringResource(R.string.cd_return),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                }
-            }
-        }
-    }
-}

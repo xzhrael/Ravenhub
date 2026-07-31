@@ -16,7 +16,6 @@
 
 package com.ravenhub.app.ui.viewmodel
 
-
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
@@ -33,7 +32,6 @@ import com.ravenhub.app.R
 import com.ravenhub.app.ui.util.RootUtils
 import com.ravenhub.app.ui.util.isBannerImageEnabled
 
-
 data class HomeUiState(
     val isBannerEnabled: Boolean = false,
     val moduleInstalled: Boolean = false,
@@ -46,7 +44,6 @@ data class HomeUiState(
     val runningGameStartTime: String? = null,
     val daemonStatus: Map<String, String> = emptyMap()
 )
-
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val exceptionHandler = kotlinx.coroutines.CoroutineExceptionHandler { _, exception ->
@@ -73,78 +70,24 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     init {
         prefs.registerOnSharedPreferenceChangeListener(prefListener)
         _uiState.value = _uiState.value.copy(isBannerEnabled = context.isBannerImageEnabled())
-        
-        observeRootUtils()
         fetchInitialSystemData()
     }
-
-    private fun observeRootUtils() {
-        viewModelScope.launch(Dispatchers.IO) {
-            RootUtils.observeServiceStatusRes().collect { (statusRes, pid) ->
-                _uiState.update { it.copy(serviceStatusRes = statusRes, servicePid = pid) }
-            }
-        }
-        viewModelScope.launch(Dispatchers.IO) {
-            RootUtils.observeProfileRes().collect { profileRes ->
-                _uiState.update { it.copy(currentProfileRes = profileRes) }
-            }
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            RootUtils.observeGameInfo().collect { info ->
-                _uiState.update {
-                    it.copy(
-                        runningGamePkg = info.pkg,
-                        runningGameStartTime = info.startTime
-                    )
-                }
-            }
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            RootUtils.observeDaemonStatus().collect { daemonStatus ->
-                _uiState.update { it.copy(daemonStatus = daemonStatus) }
-            }
-        }
-    }
-
 
     private fun fetchInitialSystemData() {
         viewModelScope.launch(Dispatchers.IO) {
             val isRooted = RootUtils.requestRootAccess()
-            val isModuleInstalled = RootUtils.isModuleInstalled()
-            val mode = com.ravenhub.app.ui.util.PropertyUtils.get("persist.sys.ravencoreconf.AIenabled")
-
             _uiState.value = _uiState.value.copy(
-                rootStatus = isRooted,
-                moduleInstalled = isModuleInstalled,
-                autoMode = mode
+                rootStatus = isRooted
             )
-
-            if (isRooted && isModuleInstalled) {
-                val status = RootUtils.getServiceStatusRes()
-                _uiState.update { it.copy(serviceStatusRes = status.first, servicePid = status.second) }
-            }
         }
     }
 
     fun refreshServiceStatus() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val status = RootUtils.getServiceStatusRes()
-            _uiState.update { it.copy(serviceStatusRes = status.first, servicePid = status.second) }
-        }
+        // No-op
     }
 
     fun applyProfile(profileReason: String, onSuccess: () -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val bin = com.ravenhub.app.ui.util.RootUtils.getServiceBinPath()
-            try {
-                Shell.cmd("$bin -p $profileReason").submit()
-                val ctx = getApplication<Application>().applicationContext
-                ctx.sendBroadcast(android.content.Intent("ravencore.intent.action.UPDATE_NOTIFICATION"))
-            } catch (_: Exception) {}
-            viewModelScope.launch(Dispatchers.Main) { onSuccess() }
-        }
+        viewModelScope.launch(Dispatchers.Main) { onSuccess() }
     }
 
     fun rebootDevice(reason: String) {
@@ -152,7 +95,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val cmd = when (reason) {
                 "" -> "svc power reboot"
                 "soft_reboot" -> "killall system_server"
-                "recovery" -> "/system/bin/input keyevent 26 && svc power reboot $reason || reboot $reason"
+                "recovery" -> "svc power reboot recovery || reboot recovery"
                 else -> "svc power reboot $reason || reboot $reason"
             }
             try {
@@ -165,14 +108,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
         prefs.unregisterOnSharedPreferenceChangeListener(prefListener)
     }
-    
-
 
     fun refreshAiMode() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val mode = com.ravenhub.app.ui.util.PropertyUtils.get("persist.sys.ravencoreconf.AIenabled")
-            _uiState.value = _uiState.value.copy(autoMode = mode)
-        }
+        // No-op
     }
-
 }

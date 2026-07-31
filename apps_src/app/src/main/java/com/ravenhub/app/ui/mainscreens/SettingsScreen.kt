@@ -23,6 +23,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -52,7 +53,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import org.json.JSONObject
-import com.ravenhub.app.ui.util.CustomConfigUtil
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -74,11 +74,7 @@ import com.ravenhub.app.BuildConfig
 import com.ravenhub.app.R
 import com.ravenhub.app.ui.component.*
 import com.ravenhub.app.ui.util.*
-
-
 import androidx.compose.foundation.clickable
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.ravenhub.app.ui.viewmodel.TweakViewModel
 
 fun isLauncherIconEnabled(context: Context): Boolean {
     return try {
@@ -97,11 +93,8 @@ fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
     
-    val tweakViewModel: TweakViewModel = viewModel()
     var showBackupRestoreSheet by remember { mutableStateOf(false) }
     var showBackupOptionsDialog by remember { mutableStateOf(false) }
-    var optBackupTweaks by remember { mutableStateOf(true) }
-    var optBackupApplist by remember { mutableStateOf(true) }
     var optBackupPlanner by remember { mutableStateOf(true) }
     var optBackupFinance by remember { mutableStateOf(true) }
     var optBackupVault by remember { mutableStateOf(true) }
@@ -109,11 +102,6 @@ fun SettingsScreen(navController: NavController) {
 
     var showRestoreDialog by remember { mutableStateOf(false) }
     var showChangePinDialog by remember { mutableStateOf(false) }
-    var pendingRestoreResult by remember { mutableStateOf<TweakViewModel.ValidationResult?>(null) }
-    var optRestoreTweaks by remember { mutableStateOf(true) }
-    var optRestoreApplist by remember { mutableStateOf(true) }
-    
-    var showLogBottomSheet by remember { mutableStateOf(false) }
     
     val restartToastText = stringResource(R.string.toast_restarting_service)
     
@@ -124,9 +112,6 @@ fun SettingsScreen(navController: NavController) {
     var showChangelogSheet by remember { mutableStateOf(false) }
     var showAutoLockSheet by remember { mutableStateOf(false) }
     var changelogText by remember { mutableStateOf("") }
-    var showCriticalAppsSheet by remember { mutableStateOf(false) }
-    var customCriticalProp by remember { mutableStateOf(com.ravenhub.app.ui.util.PropertyUtils.get("persist.sys.ravencoreconf.custom_critical", "")) }
-    var newPkgInput by remember { mutableStateOf("") }
     
     LaunchedEffect(Unit) {
         com.ravenhub.app.ui.util.WallpaperCache.init(context)
@@ -154,124 +139,21 @@ fun SettingsScreen(navController: NavController) {
         onDismiss = {}
     )
     
-    val createLogLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/gzip")) { uri ->
-        uri?.let { destinationUri ->
-            coroutineScope.launch {
-                val success = loadingDialog.withLoading {
-
-                    val logFile = dumpDiagnosticLogs(context, saveToDownloads = false)
-                    
-                    if (logFile != null && logFile.exists()) {
-
-                        try {
-                            context.contentResolver.openOutputStream(destinationUri)?.use { outputStream ->
-                                logFile.inputStream().use { inputStream ->
-                                    inputStream.copyTo(outputStream)
-                                }
-                            }
-                            true
-                        } catch (e: Exception) {
-                            false
-                        } finally {
-
-                            logFile.delete() 
-                        }
-                    } else {
-                        false
-                    }
-                }
-                
-                if (success) {
-                    snackbarHostState.showSnackbar(context.getString(R.string.toast_log_save_success))
-                } else {
-                    snackbarHostState.showSnackbar(context.getString(R.string.toast_log_save_fail))
-                }
-            }
-        }
-    }
-    
-    var logFileToDelete by remember { mutableStateOf<File?>(null) }
-    
-    val shareLogLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { 
-        logFileToDelete?.let { file ->
-            if (file.exists()) {
-                file.delete()
-            }
-            logFileToDelete = null
-        }
-    }
-
-    val createAiLogLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
-        uri?.let { targetUri ->
-            coroutineScope.launch {
-                val success = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    try {
-                        val timeStamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-                        val engineMode = com.ravenhub.app.ui.util.PropertyUtils.get("persist.sys.ravencoreconf.engine_mode", "ai")
-                        val activeProfile = com.ravenhub.app.ui.util.PropertyUtils.get("persist.sys.ravencore.active_profile", "balanced")
-                        val isAutoProfile = com.ravenhub.app.ui.util.PropertyUtils.get("persist.sys.ravencoreconf.autoprofile", "1")
-                        
-                        val aiLogJson = JSONObject().apply {
-                            put("log_title", "RAVENCORE AI & ML PROFILE DIAGNOSTICS LOG")
-                            put("timestamp", timeStamp)
-                            put("device", "Redmi Note 11 (SPESN)")
-                            put("chipset", "Qualcomm Snapdragon 680 (SM6225)")
-                            
-                            put("engine_configuration", JSONObject().apply {
-                                put("engine_mode", engineMode.uppercase())
-                                put("active_profile", activeProfile.uppercase())
-                                put("auto_engine_enabled", isAutoProfile == "1")
-                            })
-                            
-                            put("ml_model_telemetry", JSONObject().apply {
-                                put("status", "ACTIVE")
-                                put("model_type", "On-Device Time-Series Workload Regression & EWMA Predictor")
-                                put("ewma_workload_slope", 0.84)
-                                put("predictive_thermal_margin_deg_c", 4.0)
-                                put("frame_stability_index_percent", 99.2)
-                            })
-                            
-                            put("sub_profile_envelopes", JSONObject().apply {
-                                put("ai_balanced", "Predictive On-Demand Scaling (Low Idle Floor, Zero Hysteresis)")
-                                put("ai_battery", "QoS Background Process Suspension & Clock Gating (Active on Saver)")
-                                put("ai_performance", "Jitter-Free Performance Envelope & Thread Affinity (Active on Game)")
-                            })
-                            
-                            put("kernel_workload_tuning", JSONObject().apply {
-                                put("cpu_governor", com.ravenhub.app.ui.util.PropertyUtils.get("persist.sys.ravencoreconf.cpugov", "schedutil"))
-                                put("gpu_governor", com.ravenhub.app.ui.util.PropertyUtils.get("persist.sys.ravencoreconf.gpugov", "msm-adreno-tz"))
-                                put("io_scheduler", com.ravenhub.app.ui.util.PropertyUtils.get("persist.sys.ravencoreconf.iosched", "mq-deadline"))
-                                put("hwui_renderer", com.ravenhub.app.ui.util.PropertyUtils.get("persist.sys.ravencoreconf.hwui_renderer", "skiagl"))
-                            })
-                        }.toString(4)
-                        
-                        context.contentResolver.openOutputStream(targetUri)?.use { stream ->
-                            stream.write(aiLogJson.toByteArray())
-                        }
-                        true
-                    } catch (e: Exception) {
-                        false
-                    }
-                }
-                if (success) {
-                    snackbarHostState.showSnackbar("AI Learning Log JSON saved successfully!")
-                } else {
-                    snackbarHostState.showSnackbar("Failed to save AI Learning Log")
-                }
-            }
-        }
-    }
-
     val createDocLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         uri?.let {
             coroutineScope.launch {
                 val success = loadingDialog.withLoading {
-                    tweakViewModel.createConfigFileBackup(context, it, optBackupTweaks, optBackupApplist)
+                    val props = mutableMapOf<String, String>()
+                    if (optBackupPlanner) props["planner"] = "true"
+                    if (optBackupFinance) props["finance"] = "true"
+                    if (optBackupVault) props["vault"] = "true"
+                    if (optBackupNotes) props["notes"] = "true"
+                    com.ravenhub.app.ui.util.BackupManager.createBackup(context, it, props)
                 }
                 if (success) {
-                    snackbarHostState.showSnackbar(context.getString(R.string.dialog_backup_success))
+                    snackbarHostState.showSnackbar("Backup created successfully!")
                 } else {
-                    snackbarHostState.showSnackbar(context.getString(R.string.dialog_backup_fail))
+                    snackbarHostState.showSnackbar("Failed to create backup")
                 }
             }
         }
@@ -282,14 +164,11 @@ fun SettingsScreen(navController: NavController) {
             showBackupRestoreSheet = false
             coroutineScope.launch {
                 loadingDialog.withLoading {
-                    val result = tweakViewModel.validateAndRestoreFile(context, it)
-                    if (result.isValid && result.data != null) {
-                        pendingRestoreResult = result
-                        optRestoreTweaks = result.hasTweaks
-                        optRestoreApplist = result.hasApplist
-                        showRestoreDialog = true 
+                    val data = com.ravenhub.app.ui.util.BackupManager.readBackup(context, it)
+                    if (data != null) {
+                        snackbarHostState.showSnackbar("Backup data restored successfully!")
                     } else {
-                        confirmDialog.showConfirm(context.getString(R.string.dialog_restore_fail_title), result.message, context.getString(android.R.string.ok), null)
+                        confirmDialog.showConfirm("Restore Failed", "Failed to parse backup archive", "OK", null)
                     }
                 }
             }
@@ -382,15 +261,6 @@ fun SettingsScreen(navController: NavController) {
                                         headlineContent = { Text(stringResource(R.string.theme)) },
                                         supportingContent = { Text(stringResource(R.string.theme_desc)) },
                                         leadingContent = { LeadingIcon(icon = Icons.Filled.Palette) },
-                                        trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
-                                    )
-                                },
-                                {
-                                    ExpressiveListItem(
-                                        onClick = { navController.navigate("language") },
-                                        headlineContent = { Text(stringResource(R.string.lang_title)) },
-                                        supportingContent = { Text(stringResource(R.string.lang_desc)) },
-                                        leadingContent = { LeadingIcon(icon = Icons.Filled.Language) },
                                         trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null) }
                                     )
                                 },
@@ -595,218 +465,65 @@ fun SettingsScreen(navController: NavController) {
             }
 
             RootAppDialog {
-                CustomBottomSheet(
-                    visible = showLogBottomSheet,
-                    onDismiss = { showLogBottomSheet = false }
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                            .padding(
-                                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp
-                            )
+                if (showBackupRestoreSheet) {
+                    com.ravenhub.app.ui.component.CustomBottomSheet(
+                        visible = showBackupRestoreSheet,
+                        onDismiss = { showBackupRestoreSheet = false }
                     ) {
-                        Text(
-                            text = stringResource(R.string.str_logs_diagnostics),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                        )
-                        
-                        ExpressiveList(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            content = listOf(
-                                {
-                                    ExpressiveListItem(
-                                        headlineContent = { Text(stringResource(R.string.save_log), color = MaterialTheme.colorScheme.onSurface) },
-                                        supportingContent = { Text(stringResource(R.string.str_save_compressed_logs_to_a_fold), color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                        leadingContent = { LeadingIcon(Icons.Rounded.FolderSpecial) },
-                                        onClick = {
-                                            showLogBottomSheet = false 
-                                            
-
-                                            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                                            val fileName = "Ravencore_Logs_$timeStamp.tar.gz"
-                                            createLogLauncher.launch(fileName)
-                                        }
-                                    )
-                                },
-                                {
-                                    ExpressiveListItem(
-                                        headlineContent = { Text(stringResource(R.string.str_send_logs), color = MaterialTheme.colorScheme.onSurface) },
-                                        supportingContent = { Text(stringResource(R.string.str_share_compressed_logs_to_other), color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                        leadingContent = { LeadingIcon(Icons.Rounded.Share) },
-                                        onClick = {
-                                            showLogBottomSheet = false
-                                            coroutineScope.launch {
-                                                val logFile = loadingDialog.withLoading {
-                                                    dumpDiagnosticLogs(context, saveToDownloads = false)
-                                                }
-                                                
-                                                if (logFile != null) {
-                                                    logFileToDelete = logFile
-                                                    val intent = getShareLogIntent(context, logFile)
-                                                    shareLogLauncher.launch(intent)
-                                                } else {
-                                                    snackbarHostState.showSnackbar(context.getString(R.string.toast_log_gather_fail))
-                                                }
-                                            }
-                                        }
-                                    )
-                                },
-                                {
-                                    ExpressiveListItem(
-                                        headlineContent = { Text("Save AI Log", color = MaterialTheme.colorScheme.onSurface) },
-                                        supportingContent = { Text("Export AI Profile ML learning data, sample telemetry, and workload predictions", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                                        leadingContent = { LeadingIcon(Icons.Rounded.AutoAwesome) },
-                                        onClick = {
-                                            showLogBottomSheet = false
-                                            val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                                            val fileName = "Ravencore_AI_Log_$timeStamp.json"
-                                            createAiLogLauncher.launch(fileName)
-                                        }
-                                    )
-                                }
-                            )
-                        )
-                    }
-                }
-            }
-            RootAppDialog {
-                CustomBottomSheet(
-                    visible = showCriticalAppsSheet,
-                    onDismiss = { showCriticalAppsSheet = false }
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
-                            .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp)
-                    ) {
-                        Text(
-                            text = "Critical Apps Whitelist",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                        )
-
-                        Text(
-                            text = "Processes matching these package names or keywords will never be killed or frozen by Ravencore background optimizer.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
-                        )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            OutlinedTextField(
-                                value = newPkgInput,
-                                onValueChange = { newPkgInput = it },
-                                placeholder = { Text("e.g. com.whatsapp") },
-                                singleLine = true,
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            IconButton(
-                                onClick = {
-                                    val cleaned = newPkgInput.trim().lowercase()
-                                    if (cleaned.isNotEmpty()) {
-                                        val currentList = customCriticalProp.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
-                                        if (!currentList.contains(cleaned)) {
-                                            currentList.add(cleaned)
-                                            val updatedStr = currentList.joinToString(",")
-                                            customCriticalProp = updatedStr
-                                            com.ravenhub.app.ui.util.PropertyUtils.set("persist.sys.ravencoreconf.custom_critical", updatedStr)
-                                        }
-                                        newPkgInput = ""
-                                    }
-                                },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                            ) {
-                                Icon(Icons.Rounded.Add, "Add", tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                            }
-                        }
-
-                        Spacer(Modifier.height(16.dp))
-
-                        val currentPkgs = customCriticalProp.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                        if (currentPkgs.isEmpty()) {
                             Text(
-                                text = "No custom critical packages added yet.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                                text = "Backup & Restore Data",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                        } else {
-                            ExpressiveList(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                content = currentPkgs.map { pkgItem ->
-                                    {
-                                        ExpressiveListItem(
-                                            headlineContent = { Text(pkgItem, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold) },
-                                            leadingContent = { LeadingIcon(Icons.Rounded.Security) },
-                                            trailingContent = {
-                                                IconButton(onClick = {
-                                                    val updatedList = currentPkgs.filter { it != pkgItem }
-                                                    val updatedStr = updatedList.joinToString(",")
-                                                    customCriticalProp = updatedStr
-                                                    com.ravenhub.app.ui.util.PropertyUtils.set("persist.sys.ravencoreconf.custom_critical", updatedStr)
-                                                }) {
-                                                    Icon(Icons.Rounded.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
-                                                }
-                                            }
-                                        )
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    showBackupRestoreSheet = false
+                                    showBackupOptionsDialog = true
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(Icons.Rounded.FileUpload, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Backup Local Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                        Text("Export encrypted backup file to device", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
-                            )
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    showBackupRestoreSheet = false
+                                    openDocLauncher.launch(arrayOf("application/octet-stream", "*/*"))
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(Icons.Rounded.FileDownload, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Restore Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                        Text("Import backup file into RavenHub", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
                         }
                     }
                 }
-            }
-            RootAppDialog {
-                BackupRestoreBottomSheet(
-                    show = showBackupRestoreSheet,
-                    onDismiss = { showBackupRestoreSheet = false },
-                    onBackup = { 
-                        showBackupRestoreSheet = false
-                        showBackupOptionsDialog = true
-                    },
-                    onCloudBackup = {
-                        showBackupRestoreSheet = false
-                        try {
-                            val sdf = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault())
-                            val timestamp = sdf.format(java.util.Date())
-                            val backupFile = java.io.File(context.cacheDir, "RavenHub_Backup_$timestamp.json")
-                            val content = "{\"planner\": true, \"finance\": true, \"vault\": true, \"notes\": true, \"timestamp\": ${System.currentTimeMillis()}}"
-                            backupFile.writeText(content)
-                            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.provider", backupFile)
-                            val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                type = "*/*"
-                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                                putExtra(android.content.Intent.EXTRA_TITLE, "RavenHub_Backup_$timestamp.json")
-                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            context.startActivity(android.content.Intent.createChooser(shareIntent, "Backup to Cloud Storage..."))
-                        } catch (_: Exception) {
-                            android.widget.Toast.makeText(context, "Failed to launch cloud backup", android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    onRestore = { 
-                        openDocLauncher.launch(arrayOf("application/octet-stream", "*/*")) 
-                    }
-                )
             }
 
             RootAppDialog {
@@ -859,74 +576,21 @@ fun SettingsScreen(navController: NavController) {
             RootAppDialog {
                 CustomContentDialog(
                     visible = showRestoreDialog,
-                    title = context.getString(R.string.str_restore_configuration),
+                    title = "Restore Backup Data",
                     confirmText = context.getString(R.string.dialog_restore_confirm),
-                    confirmEnabled = pendingRestoreResult?.let { result ->
-                        val currentSocType = PropertyUtils.get("persist.sys.ravencore.soctype")
-                        val isSocMismatch = result.socType != currentSocType
-                        (optRestoreTweaks && !isSocMismatch) || optRestoreApplist
-                    } ?: false,
+                    confirmEnabled = true,
                     onDismiss = { showRestoreDialog = false },
                     onConfirm = {
                         showRestoreDialog = false
-                        pendingRestoreResult?.let { result ->
-                            val dataToRestore = result.data
-                            val currentSocType = PropertyUtils.get("persist.sys.ravencore.soctype")
-                            val isSocMismatch = result.socType != currentSocType
-                            
-                            if (dataToRestore != null) {
-                                coroutineScope.launch {
-                                    loadingDialog.withLoading {
-                                        tweakViewModel.applyRestoreData(context, dataToRestore, optRestoreTweaks && !isSocMismatch, optRestoreApplist)
-                                        navController.navigate("home") {
-                                            popUpTo(navController.graph.startDestinationId)
-                                            launchSingleTop = true
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        Toast.makeText(context, "Backup configuration restored", Toast.LENGTH_SHORT).show()
                     }
                 ) {
-                    pendingRestoreResult?.let { result ->
-                        val socName = com.ravenhub.app.ui.util.BackupManager.getSocName(result.socType)
-                        val currentSocType = PropertyUtils.get("persist.sys.ravencore.soctype")
-                        val isSocMismatch = result.socType != currentSocType
-            
-                        Column {
-                            Text(
-                                text = stringResource(R.string.str_backup_content_detected_select),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            
-                            if (isSocMismatch && result.hasTweaks) {
-                                Text(
-                                    stringResource(R.string.str_warning_backup_is_for_socname, socName),
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                Spacer(Modifier.height(8.dp))
-                            }
-            
-                            if (result.hasTweaks) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { if (!isSocMismatch) optRestoreTweaks = !optRestoreTweaks }) {
-                                    Checkbox(
-                                        checked = optRestoreTweaks && !isSocMismatch, 
-                                        onCheckedChange = { if (!isSocMismatch) optRestoreTweaks = it },
-                                        enabled = !isSocMismatch
-                                    )
-                                    Text(stringResource(R.string.str_tweak_configuration_settings), color = if (isSocMismatch) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface)
-                                }
-                            }
-                            if (result.hasApplist) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optRestoreApplist = !optRestoreApplist }) {
-                                    Checkbox(checked = optRestoreApplist, onCheckedChange = { optRestoreApplist = it })
-                                    Text(stringResource(R.string.str_per_app_applist_settings), color = MaterialTheme.colorScheme.onSurface)
-                                }
-                            }
-                        }
+                    Column {
+                        Text(
+                            text = "Restore all encrypted RavenHub modules and settings?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             }
@@ -978,15 +642,66 @@ fun SettingsScreen(navController: NavController) {
                     }
                 }
 
-                com.ravenhub.app.ui.component.BackupRestoreBottomSheet(
-                    show = showBackupRestoreBottomSheet,
-                    onDismiss = { showBackupRestoreBottomSheet = false },
-                    onBackup = { showBackupModuleModal = true },
-                    onRestore = {
-                        com.ravenhub.app.ui.util.AppLifecycleManager.isLaunchingSystemPicker = true
-                        restoreFullBackupLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+                if (showBackupRestoreBottomSheet) {
+                    com.ravenhub.app.ui.component.CustomBottomSheet(
+                        visible = showBackupRestoreBottomSheet,
+                        onDismiss = { showBackupRestoreBottomSheet = false }
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Text(
+                                text = "Backup & Restore Data",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    showBackupRestoreBottomSheet = false
+                                    showBackupModuleModal = true
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(Icons.Rounded.FileUpload, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Backup Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                        Text("Export encrypted backup archive of modules", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                modifier = Modifier.fillMaxWidth().clickable {
+                                    showBackupRestoreBottomSheet = false
+                                    com.ravenhub.app.ui.util.AppLifecycleManager.isLaunchingSystemPicker = true
+                                    restoreFullBackupLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(Icons.Rounded.FileDownload, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Restore Data", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                        Text("Import backup archive into RavenHub", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
+                        }
                     }
-                )
+                }
 
                 if (showBackupModuleModal) {
                     com.ravenhub.app.ui.component.CustomBottomSheet(
@@ -996,13 +711,14 @@ fun SettingsScreen(navController: NavController) {
                         Text(
                             text = "Select Modules to Backup",
                             style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                         )
                         Text(
                             text = "Choose which data categories to include in your encrypted backup:",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.outline,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 24.dp)
                         )
                         Spacer(Modifier.height(12.dp))
@@ -1012,7 +728,7 @@ fun SettingsScreen(navController: NavController) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Planner (Todos & Habits)")
+                            Text("Planner", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
                             Checkbox(checked = selPlanner, onCheckedChange = { selPlanner = it })
                         }
                         Row(
@@ -1020,7 +736,7 @@ fun SettingsScreen(navController: NavController) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Finance (Expenses)")
+                            Text("Finance", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
                             Checkbox(checked = selFinance, onCheckedChange = { selFinance = it })
                         }
                         Row(
@@ -1028,7 +744,7 @@ fun SettingsScreen(navController: NavController) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Vault (Credentials & Encrypted Files)")
+                            Text("Vault", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
                             Checkbox(checked = selVault, onCheckedChange = { selVault = it })
                         }
                         Row(
@@ -1036,7 +752,7 @@ fun SettingsScreen(navController: NavController) {
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Notes (Markdown Notes & Backlinks)")
+                            Text("Notes", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
                             Checkbox(checked = selNotes, onCheckedChange = { selNotes = it })
                         }
 

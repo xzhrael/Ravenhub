@@ -501,6 +501,8 @@ private fun CredentialRow(cred: CredentialItem, onEdit: (CredentialItem) -> Unit
     var showPassword by remember { mutableStateOf(false) }
     var showReauthForPassword by remember { mutableStateOf(false) }
 
+    var showReauthForEdit by remember { mutableStateOf(false) }
+
     ExpressiveListItem(
         onClick = {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -556,7 +558,7 @@ private fun CredentialRow(cred: CredentialItem, onEdit: (CredentialItem) -> Unit
         },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                IconButton(onClick = { onEdit(cred) }, modifier = Modifier.size(40.dp)) {
+                IconButton(onClick = { showReauthForEdit = true }, modifier = Modifier.size(40.dp)) {
                     Icon(Icons.Rounded.Edit, "Edit", Modifier.size(22.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 IconButton(onClick = { onDelete(cred) }, modifier = Modifier.size(40.dp)) {
@@ -575,6 +577,19 @@ private fun CredentialRow(cred: CredentialItem, onEdit: (CredentialItem) -> Unit
                     showPassword = true
                 },
                 onCancel = { showReauthForPassword = false }
+            )
+        }
+    }
+
+    if (showReauthForEdit) {
+        RootAppDialog {
+            LockScreen(
+                mode = LockMode.REAUTH,
+                onUnlocked = {
+                    showReauthForEdit = false
+                    onEdit(cred)
+                },
+                onCancel = { showReauthForEdit = false }
             )
         }
     }
