@@ -273,6 +273,7 @@ fun FinanceScreen(viewModel: FinanceViewModel = viewModel()) {
                     onDelete = { expense -> itemToDelete = expense }
                 )
             }
+            Spacer(modifier = Modifier.height(140.dp))
         }
     }
 

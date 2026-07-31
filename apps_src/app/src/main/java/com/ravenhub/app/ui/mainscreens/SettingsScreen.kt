@@ -96,6 +96,7 @@ fun SettingsScreen(navController: NavController) {
     
     var showBackupRestoreSheet by remember { mutableStateOf(false) }
     var showBackupOptionsDialog by remember { mutableStateOf(false) }
+    var isCloudBackup by remember { mutableStateOf(false) }
     var optBackupPlanner by remember { mutableStateOf(true) }
     var optBackupFinance by remember { mutableStateOf(true) }
     var optBackupVault by remember { mutableStateOf(true) }
@@ -481,6 +482,7 @@ fun SettingsScreen(navController: NavController) {
                                     {
                                         ExpressiveListItem(
                                             onClick = {
+                                                isCloudBackup = false
                                                 showBackupRestoreSheet = false
                                                 showBackupOptionsDialog = true
                                             },
@@ -493,6 +495,7 @@ fun SettingsScreen(navController: NavController) {
                                     {
                                         ExpressiveListItem(
                                             onClick = {
+                                                isCloudBackup = true
                                                 showBackupRestoreSheet = false
                                                 showBackupOptionsDialog = true
                                             },
@@ -522,47 +525,116 @@ fun SettingsScreen(navController: NavController) {
             }
 
             RootAppDialog {
-                CustomContentDialog(
-                    visible = showBackupOptionsDialog,
-                    title = "Select Modules to Backup",
-                    confirmText = "Export Backup",
-                    confirmEnabled = optBackupPlanner || optBackupFinance || optBackupVault || optBackupNotes,
-                    onDismiss = { showBackupOptionsDialog = false },
-                    onConfirm = {
-                        showBackupOptionsDialog = false
-                        val sdf = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault())
-                        val timestamp = sdf.format(java.util.Date())
-                        val dynamicFileName = "RavenHub_Backup_$timestamp.json"
-                        createDocLauncher.launch(dynamicFileName) 
-                    }
-                ) {
-                    val checkboxColors = CheckboxDefaults.colors(
-                        checkedColor = MaterialTheme.colorScheme.primary,
-                        uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        checkmarkColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(
-                            text = "Select the modules you wish to export to your backup file:",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupPlanner = !optBackupPlanner }) {
-                            Checkbox(checked = optBackupPlanner, onCheckedChange = { optBackupPlanner = it }, colors = checkboxColors)
-                            Text("Planner", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupFinance = !optBackupFinance }) {
-                            Checkbox(checked = optBackupFinance, onCheckedChange = { optBackupFinance = it }, colors = checkboxColors)
-                            Text("Finance", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupVault = !optBackupVault }) {
-                            Checkbox(checked = optBackupVault, onCheckedChange = { optBackupVault = it }, colors = checkboxColors)
-                            Text("Vault", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { optBackupNotes = !optBackupNotes }) {
-                            Checkbox(checked = optBackupNotes, onCheckedChange = { optBackupNotes = it }, colors = checkboxColors)
-                            Text("Notes", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+                if (showBackupOptionsDialog) {
+                    com.ravenhub.app.ui.component.CustomBottomSheet(
+                        visible = showBackupOptionsDialog,
+                        onDismiss = { showBackupOptionsDialog = false }
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState())
+                                .padding(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp)
+                        ) {
+                            Text(
+                                text = if (isCloudBackup) "Select Modules for Cloud Backup" else "Select Modules for Local Backup",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+                            )
+
+                            ExpressiveList(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                content = listOf(
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = { optBackupPlanner = !optBackupPlanner },
+                                            headlineContent = { Text("Planner", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export todos, sub-task checklist trees, and habits", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.Checklist) },
+                                            trailingContent = {
+                                                Checkbox(
+                                                    checked = optBackupPlanner,
+                                                    onCheckedChange = { optBackupPlanner = it }
+                                                )
+                                            }
+                                        )
+                                    },
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = { optBackupFinance = !optBackupFinance },
+                                            headlineContent = { Text("Finance", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export income, expense records, and analytics history", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.AccountBalanceWallet) },
+                                            trailingContent = {
+                                                Checkbox(
+                                                    checked = optBackupFinance,
+                                                    onCheckedChange = { optBackupFinance = it }
+                                                )
+                                            }
+                                        )
+                                    },
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = { optBackupVault = !optBackupVault },
+                                            headlineContent = { Text("Vault", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export passwords, credentials, and encrypted file vault", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.Lock) },
+                                            trailingContent = {
+                                                Checkbox(
+                                                    checked = optBackupVault,
+                                                    onCheckedChange = { optBackupVault = it }
+                                                )
+                                            }
+                                        )
+                                    },
+                                    {
+                                        ExpressiveListItem(
+                                            onClick = { optBackupNotes = !optBackupNotes },
+                                            headlineContent = { Text("Notes", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                                            supportingContent = { Text("Export categorized markdown notes & documentation", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                                            leadingContent = { LeadingIcon(icon = Icons.Rounded.Description) },
+                                            trailingContent = {
+                                                Checkbox(
+                                                    checked = optBackupNotes,
+                                                    onCheckedChange = { optBackupNotes = it }
+                                                )
+                                            }
+                                        )
+                                    }
+                                )
+                            )
+
+                            Spacer(Modifier.height(16.dp))
+
+                            Button(
+                                onClick = {
+                                    showBackupOptionsDialog = false
+                                    val sdf = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault())
+                                    val timestamp = sdf.format(java.util.Date())
+                                    val dynamicFileName = "RavenHub_${if (isCloudBackup) "Cloud" else "Local"}_Backup_$timestamp.json"
+                                    createDocLauncher.launch(dynamicFileName)
+                                },
+                                enabled = optBackupPlanner || optBackupFinance || optBackupVault || optBackupNotes,
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                                    .height(56.dp)
+                            ) {
+                                Icon(if (isCloudBackup) Icons.Rounded.CloudUpload else Icons.Rounded.FileUpload, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = if (isCloudBackup) "Export to Cloud Storage" else "Export Local Backup",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
                         }
                     }
                 }

@@ -171,7 +171,7 @@ fun PlannerScreen(viewModel: PlannerViewModel = viewModel()) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(140.dp))
         }
     }
 
