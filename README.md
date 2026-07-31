@@ -75,10 +75,10 @@ RavenHub is built for universal compatibility on all Android devices (API 26+) w
 ### Supported Architectures / 対応アーキテクチャ
 | Target ABI | Device Compatibility | APK Binary |
 | :--- | :---: | :---: |
-| **arm64-v8a** | Modern 64-bit Android Devices | `RavenHub-1.0-arm64-v8a-release.apk` |
-| **armeabi-v7a** | Legacy 32-bit Devices | `RavenHub-1.0-armeabi-v7a-release.apk` |
-| **x86_64** | Android Emulators / Intel Devices | `RavenHub-1.0-x86_64-release.apk` |
-| **Universal** | All Compatible Devices | `RavenHub-1.0-universal-release.apk` |
+| **arm64-v8a** | Modern 64-bit Android Devices | `RavenHub-1.1-arm64-v8a-release.apk` |
+| **armeabi-v7a** | Legacy 32-bit Devices | `RavenHub-1.1-armeabi-v7a-release.apk` |
+| **x86_64** | Android Emulators / Intel Devices | `RavenHub-1.1-x86_64-release.apk` |
+| **Universal** | All Compatible Devices | `RavenHub-1.1-universal-release.apk` |
 
 ---
 
