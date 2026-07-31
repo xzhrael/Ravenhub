@@ -191,12 +191,13 @@ fun GetStartedScreen(navController: NavController) {
                                         coroutineScope.launch(Dispatchers.IO) {
                                             appPrefs.edit().putBoolean("has_completed_get_started", true).commit()
 
-                                            delay(1000)
+                                            delay(500)
                                             withContext(Dispatchers.Main) {
-                                                val intent = Intent(context, MainActivity::class.java)
-                                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                context.startActivity(intent)
-                                                (context as? Activity)?.finish()
+                                                val isPinSet = com.ravenhub.app.security.MasterKeyManager.isPinSetup(context)
+                                                val target = if (isPinSet) "home" else "set_pin"
+                                                navController.navigate(target) {
+                                                    popUpTo("get_started") { inclusive = true }
+                                                }
                                             }
                                         }
                                     }
