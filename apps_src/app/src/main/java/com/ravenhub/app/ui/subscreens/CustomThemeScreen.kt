@@ -594,7 +594,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
                     Column {
                         ExpressiveSwitchItem(
                             icon = Icons.Outlined.Image,
-                            title = stringResource(R.string.str_enable_banner),
+                            title = "Enable Header Banner",
                             checked = isBannerEnabled,
                             onCheckedChange = onBannerEnabledChange
                         )
@@ -625,7 +625,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
                                     ) {
                                         Icon(Icons.Filled.Image, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(Modifier.width(8.dp))
-                                        Text(stringResource(R.string.str_pick_media), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text("Pick Media", maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                     
                                     OutlinedButton(
@@ -633,7 +633,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
                                             context.clearHeaderImage()
                                             onBannerUpdated(null)
                                             coroutineScope.launch {
-                                                snackbarHostState.showSnackbar(context.getString(R.string.str_default_banner_toast))
+                                                snackbarHostState.showSnackbar("Default banner restored")
                                             }
                                         },
                                         modifier = Modifier.weight(1f),
@@ -645,7 +645,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
                                     ) {
                                         Icon(Icons.Filled.Restore, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(Modifier.width(8.dp))
-                                        Text(stringResource(R.string.default_label), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text("Default", maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                 }
                             }
@@ -683,7 +683,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
                                 LeadingIcon(icon = Icons.Outlined.Gradient)
                                 Spacer(Modifier.width(16.dp))
                                 Text(
-                                    text = stringResource(R.string.str_adjust_gradient),
+                                    text = "Adjust Gradient Overlay",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -701,7 +701,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = stringResource(R.string.str_gradient_opacity),
+                                        text = "Gradient Opacity",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -711,7 +711,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         Text(
-                                            text = stringResource(R.string.str_bannergradientalpha_100_toint, (bannerGradientAlpha * 100).toInt()),
+                                            text = "${(bannerGradientAlpha * 100).toInt()}%",
                                             style = MaterialTheme.typography.labelLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
@@ -722,7 +722,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
                                         ) {
                                             Icon(
                                                 Icons.Filled.Restore,
-                                                contentDescription = stringResource(R.string.reset),
+                                                contentDescription = "Reset",
                                                 modifier = Modifier.size(18.dp),
                                                 tint = MaterialTheme.colorScheme.primary
                                             )
@@ -752,7 +752,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                stringResource(R.string.str_interface),
+                "Interface & Effects",
                 modifier = Modifier.padding(horizontal = 12.dp),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary
@@ -765,8 +765,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.settingsItems(
                 add {
                     ExpressiveSwitchItem(
                         icon = Icons.Filled.BlurOn,
-                        title = stringResource(R.string.str_expressive_blur),
-                        summary = stringResource(R.string.str_expressive_blur_summary),
+                        title = "Expressive Blur Effects",
+                        summary = "Apply real-time blur state to cards and dialogs",
                         checked = isBlurEnabled,
                         onCheckedChange = onBlurEnabledChange
                     )
@@ -800,13 +800,13 @@ fun PaletteTopAppBar(scrollBehavior: TopAppBarScrollBehavior, onBack: () -> Unit
         LargeFlexibleTopAppBar(
             title = { 
                 Text(
-                    text = stringResource(R.string.theme),
+                    text = "Theme & Accent",
                     fontWeight = FontWeight.Bold
                 ) 
             },
             navigationIcon = {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
             },        
             colors = TopAppBarDefaults.topAppBarColors(
@@ -859,7 +859,7 @@ private fun BannerGradientPreview(gradientAlpha: Float, customBannerUri: String?
                 shape = CircleShape
             ) {
                 Text(
-                    text = stringResource(R.string.str_preview), 
+                    text = "Preview", 
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp), 
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.labelMedium,
@@ -927,7 +927,7 @@ private fun ThemePreviewCard(keyColor: Int, colorSpec: ColorSpec.SpecVersion, is
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        stringResource(R.string.app_name), 
+                        "RavenHub", 
                         style = MaterialTheme.typography.labelMedium, 
                         fontWeight = FontWeight.Bold, 
                         color = colorScheme.onSurface,

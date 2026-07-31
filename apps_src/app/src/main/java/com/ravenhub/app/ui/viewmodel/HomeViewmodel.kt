@@ -37,9 +37,9 @@ data class HomeUiState(
     val moduleInstalled: Boolean = false,
     val autoMode: String? = null,
     val rootStatus: Boolean = false,
-    val serviceStatusRes: Int = R.string.status_suspended,
+    val serviceStatusRes: String = "Suspended",
     val servicePid: String = "",
-    val currentProfileRes: Int = R.string.status_initializing,
+    val currentProfileRes: String = "Initializing",
     val runningGamePkg: String? = null,
     val runningGameStartTime: String? = null,
     val daemonStatus: Map<String, String> = emptyMap()
