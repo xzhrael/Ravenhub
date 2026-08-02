@@ -53,7 +53,7 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("ravencore.jks")
+            storeFile = file("ravenhub.jks")
             storePassword = "azenith"
             keyAlias = "azenith_key"
             keyPassword = "azenith"

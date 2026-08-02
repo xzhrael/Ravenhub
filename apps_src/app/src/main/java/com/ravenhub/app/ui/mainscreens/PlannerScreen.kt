@@ -228,16 +228,16 @@ fun PlannerScreen(viewModel: PlannerViewModel = viewModel()) {
             visible = showAddTodo,
             todoToEdit = editingTodo,
             onDismiss = { showAddTodo = false },
-            onSave = { title, category, dueDateTime, reminderOffset, subTasks ->
+            onSave = { title, category, dueDateTime, reminderOffset, isAlarmEnabled, subTasks ->
                 if (editingTodo != null) {
-                    val updated = viewModel.updateTodo(editingTodo!!.id, title, category, dueDateTime, reminderOffset, subTasks)
+                    val updated = viewModel.updateTodo(editingTodo!!.id, title, category, dueDateTime, reminderOffset, isAlarmEnabled, subTasks)
                     if (dueDateTime != null) {
                         TodoScheduler.schedule(context, updated)
                     } else {
                         TodoScheduler.cancel(context, editingTodo!!.id)
                     }
                 } else {
-                    val newTodo = viewModel.addTodo(title, category, dueDateTime, reminderOffset, subTasks)
+                    val newTodo = viewModel.addTodo(title, category, dueDateTime, reminderOffset, isAlarmEnabled, subTasks)
                     if (dueDateTime != null) {
                         TodoScheduler.schedule(context, newTodo)
                     }
@@ -495,12 +495,13 @@ private fun AddTodoSheet(
     visible: Boolean,
     todoToEdit: TodoItem? = null,
     onDismiss: () -> Unit,
-    onSave: (String, String, Long?, Int?, List<SubTaskItem>) -> Unit
+    onSave: (String, String, Long?, Int?, Boolean, List<SubTaskItem>) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var selectedCalendar by remember { mutableStateOf<Calendar?>(null) }
     var reminderOffset by remember { mutableIntStateOf(0) }
+    var isAlarmEnabled by remember { mutableStateOf(false) }
     var subTasks by remember { mutableStateOf<List<SubTaskItem>>(emptyList()) }
     var newSubTaskInput by remember { mutableStateOf("") }
 
@@ -518,12 +519,14 @@ private fun AddTodoSheet(
                 category = todoToEdit.category
                 selectedCalendar = todoToEdit.dueDateTime?.let { Calendar.getInstance().apply { timeInMillis = it } }
                 reminderOffset = todoToEdit.reminderOffsetMinutes ?: 0
+                isAlarmEnabled = todoToEdit.isAlarmEnabled
                 subTasks = todoToEdit.subTasks
             } else {
                 title = ""
                 category = ""
                 selectedCalendar = null
                 reminderOffset = 0
+                isAlarmEnabled = false
                 subTasks = emptyList()
             }
             newSubTaskInput = ""
@@ -636,7 +639,7 @@ private fun AddTodoSheet(
             )
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (selectedCalendar != null) {
-                    IconButton(onClick = { selectedCalendar = null }) {
+                    IconButton(onClick = { selectedCalendar = null; isAlarmEnabled = false }) {
                         Icon(Icons.Rounded.Close, "Clear reminder", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -648,11 +651,29 @@ private fun AddTodoSheet(
             }
         }
 
+        if (selectedCalendar != null) {
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Ring Full Alarm Sound", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Play loud clock alarm ringtone when triggered", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(
+                    checked = isAlarmEnabled,
+                    onCheckedChange = { isAlarmEnabled = it }
+                )
+            }
+        }
+
         Spacer(Modifier.height(16.dp))
         Button(
             onClick = {
                 if (title.isNotBlank()) {
-                    onSave(title.trim(), category.trim(), selectedCalendar?.timeInMillis, if (selectedCalendar != null) reminderOffset else null, subTasks)
+                    onSave(title.trim(), category.trim(), selectedCalendar?.timeInMillis, if (selectedCalendar != null) reminderOffset else null, isAlarmEnabled, subTasks)
                 }
             },
             enabled = title.isNotBlank(),

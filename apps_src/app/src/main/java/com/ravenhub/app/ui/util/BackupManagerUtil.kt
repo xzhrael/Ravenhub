@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026-2027 Zexshia
+ * Copyright (C) 2026-2027 RavenHub
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import org.json.JSONObject
 
 object BackupManager {
 
-    private const val SECRET_KEY = "ZexshiaRavencoreSecuredKey123456" 
+    private const val SECRET_KEY = "RavenHubRavenHubSecuredKey123456" 
     private const val ALGORITHM = "AES"
 
 

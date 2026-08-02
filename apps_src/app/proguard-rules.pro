@@ -62,12 +62,12 @@
 -keepclassmembers class * implements kotlinx.serialization.KSerializer { *; }
 -keepclassmembers class * extends java.lang.Enum { *; }
 
-# Android & LSPosed / Ravencore Engine
--keep class ravencore.engine.AppMonitor {
+# Android & LSPosed / RavenHub Engine
+-keep class ravenhub.engine.AppMonitor {
     public static void main(java.lang.String[]);
 }
 
--keep class ravencore.engine.SysMonMain {
+-keep class ravenhub.engine.SysMonMain {
     public static void main(java.lang.String[]);
 }
 

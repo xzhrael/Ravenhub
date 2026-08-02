@@ -34,4 +34,4 @@ Thumbs.db
 *.aab
 
 # Do NOT ignore keystores required for building the project out of the box
-!apps_src/app/ravencore.jks
+!apps_src/app/ravenhub.jks

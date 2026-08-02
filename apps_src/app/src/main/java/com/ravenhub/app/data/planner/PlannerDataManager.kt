@@ -37,6 +37,7 @@ object PlannerDataManager {
         category: String,
         dueDateTime: Long? = null,
         reminderOffsetMinutes: Int? = null,
+        isAlarmEnabled: Boolean = false,
         subTasks: List<SubTaskItem> = emptyList()
     ): TodoItem {
         val todo = TodoItem(
@@ -44,6 +45,7 @@ object PlannerDataManager {
             category = category,
             dueDateTime = dueDateTime,
             reminderOffsetMinutes = reminderOffsetMinutes,
+            isAlarmEnabled = isAlarmEnabled,
             subTasks = subTasks
         )
         persist(context, _data.value.copy(todos = _data.value.todos + todo))
@@ -57,6 +59,7 @@ object PlannerDataManager {
         category: String,
         dueDateTime: Long? = null,
         reminderOffsetMinutes: Int? = null,
+        isAlarmEnabled: Boolean = false,
         subTasks: List<SubTaskItem> = emptyList()
     ): TodoItem {
         val existing = _data.value.todos.find { it.id == id }
@@ -66,6 +69,7 @@ object PlannerDataManager {
             category = category,
             dueDateTime = dueDateTime,
             reminderOffsetMinutes = reminderOffsetMinutes,
+            isAlarmEnabled = isAlarmEnabled,
             subTasks = subTasks,
             isCompleted = existing?.isCompleted ?: false
         )

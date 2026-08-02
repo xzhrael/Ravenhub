@@ -21,5 +21,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Ravencore"
+rootProject.name = "RavenHub"
 include(":app")

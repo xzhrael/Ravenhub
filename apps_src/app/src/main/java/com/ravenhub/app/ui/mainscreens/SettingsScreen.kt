@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026-2027 Zexshia
+ * Copyright (C) 2026-2027 RavenHub
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ fun SettingsScreen(navController: NavController) {
     val uninstallDialog = rememberConfirmDialog(
         onConfirm = {
             try {
-                Shell.cmd("sh /data/adb/modules/ravencore/uninstall.sh").submit()
+                Shell.cmd("sh /data/adb/modules/ravenhub/uninstall.sh").submit()
             } catch (_: Exception) {}
         },
         onDismiss = {}

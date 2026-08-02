@@ -18,6 +18,7 @@ data class TodoItem(
     val isCompleted: Boolean = false,
     val dueDateTime: Long? = null,
     val reminderOffsetMinutes: Int? = null,
+    val isAlarmEnabled: Boolean = false,
     val subTasks: List<SubTaskItem> = emptyList(),
     val createdAt: Long = System.currentTimeMillis()
 )

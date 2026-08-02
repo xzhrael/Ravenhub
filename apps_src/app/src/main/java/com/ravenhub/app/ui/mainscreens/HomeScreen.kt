@@ -229,7 +229,7 @@ fun HomeScreen(navController: NavController) {
                 }
             }
 
-            // --- Maintainer Card (Copied directly from RavenCore) ---
+            // --- Maintainer Card (Copied directly from RavenHub) ---
             item {
                 Text(
                     text = "Maintainer",
