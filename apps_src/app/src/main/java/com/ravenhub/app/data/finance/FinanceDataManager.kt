@@ -2,12 +2,16 @@ package com.ravenhub.app.data.finance
 
 import android.content.Context
 import com.ravenhub.app.security.SecureStorageEngine
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 object FinanceDataManager {
     private val _data = MutableStateFlow(FinanceData())
     val data = _data.asStateFlow()
+    private val ioScope = CoroutineScope(Dispatchers.IO)
 
     @Volatile
     private var isLoaded = false
@@ -27,7 +31,9 @@ object FinanceDataManager {
             load(context)
         }
         _data.value = newData
-        SecureStorageEngine.saveFinanceSync(context, newData)
+        ioScope.launch {
+            SecureStorageEngine.saveFinanceSync(context, newData)
+        }
     }
 
     fun addTransaction(

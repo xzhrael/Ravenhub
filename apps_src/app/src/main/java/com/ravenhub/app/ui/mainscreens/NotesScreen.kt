@@ -139,7 +139,7 @@ fun NotesScreen(viewModel: NotesViewModel = viewModel()) {
                             label = { Text("All (${data.notes.size})") }
                         )
                     }
-                    items(categories) { cat ->
+                    items(categories, key = { it }) { cat ->
                         FilterChip(
                             selected = selectedCategory == cat,
                             onClick = { selectedCategory = if (selectedCategory == cat) null else cat },

@@ -28,9 +28,9 @@ object SecureStorageEngine {
                     tempFile.delete()
                 }
 
-                // SharedPreferences Backup
+                // SharedPreferences Backup (Async apply)
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                prefs.edit().putString(keyName, bytesToHex(encrypted)).commit()
+                prefs.edit().putString(keyName, bytesToHex(encrypted)).apply()
             }
 
             // 2. Failsafe Private App Storage (JSON)

@@ -472,7 +472,7 @@ private fun CredentialsTab(
                     FilterChip(selected = selectedCategory == null, onClick = { onCategorySelected(null) },
                         label = { Text("All") })
                 }
-                items(categories) { cat ->
+                items(categories, key = { it }) { cat ->
                     FilterChip(
                         selected = selectedCategory == cat,
                         onClick = { onCategorySelected(if (selectedCategory == cat) null else cat) },

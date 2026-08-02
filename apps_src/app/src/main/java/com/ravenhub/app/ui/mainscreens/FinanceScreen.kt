@@ -183,7 +183,7 @@ fun FinanceScreen(viewModel: FinanceViewModel = viewModel()) {
                                 label = { Text("All") }
                             )
                         }
-                        items(ExpenseCategory.entries.toList()) { cat ->
+                        items(ExpenseCategory.entries.toList(), key = { it.name }) { cat ->
                             FilterChip(
                                 selected = selectedCategory == cat,
                                 onClick = { selectedCategory = if (selectedCategory == cat) null else cat },
@@ -603,7 +603,7 @@ private fun AddTransactionSheet(
             contentPadding = PaddingValues(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(ExpenseCategory.entries.toList()) { cat ->
+            items(ExpenseCategory.entries.toList(), key = { it.name }) { cat ->
                 FilterChip(
                     selected = category == cat,
                     onClick = { category = cat },

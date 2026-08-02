@@ -32,7 +32,9 @@ object VaultDataManager {
             load(context)
         }
         _data.value = newData
-        SecureStorageEngine.saveVaultSync(context, newData)
+        scope.launch {
+            SecureStorageEngine.saveVaultSync(context, newData)
+        }
     }
 
     // --- Credentials ---

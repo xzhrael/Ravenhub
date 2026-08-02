@@ -2,12 +2,16 @@ package com.ravenhub.app.data.notes
 
 import android.content.Context
 import com.ravenhub.app.security.SecureStorageEngine
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 object NotesDataManager {
     private val _data = MutableStateFlow(NotesData())
     val data = _data.asStateFlow()
+    private val ioScope = CoroutineScope(Dispatchers.IO)
 
     @Volatile
     private var isLoaded = false
@@ -27,7 +31,9 @@ object NotesDataManager {
             load(context)
         }
         _data.value = newData
-        SecureStorageEngine.saveNotesSync(context, newData)
+        ioScope.launch {
+            SecureStorageEngine.saveNotesSync(context, newData)
+        }
     }
 
     fun addNote(context: Context, title: String, content: String, category: String = "") {

@@ -2,12 +2,16 @@ package com.ravenhub.app.data.planner
 
 import android.content.Context
 import com.ravenhub.app.security.SecureStorageEngine
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 object PlannerDataManager {
     private val _data = MutableStateFlow(PlannerData())
     val data = _data.asStateFlow()
+    private val ioScope = CoroutineScope(Dispatchers.IO)
 
     @Volatile
     private var isLoaded = false
@@ -27,7 +31,9 @@ object PlannerDataManager {
             load(context)
         }
         _data.value = newData
-        SecureStorageEngine.savePlannerSync(context, newData)
+        ioScope.launch {
+            SecureStorageEngine.savePlannerSync(context, newData)
+        }
     }
 
     // --- Todos ---
